@@ -1,0 +1,24 @@
+# ShadowPain Dashboard — Dependencies
+
+# SOCKS прокси (Tor)
+PySocks>=1.7.1
+
+# OSINT — Sherlock (тянет pandas, нужен MSVC)
+# Альтернатива без проблем: leaklook
+sherlock-project>=0.15.0
+leaklook>=1.0.0
+
+# WiFi — Wifite (через WSL на Windows)
+# wifite2 — устанавливается в WSL: wsl sudo apt install wifite2
+
+# Hash — Hashcat
+# hashcat — скачивается отдельно: https://hashcat.net/hashcat/
+
+# Network — Wireshark/tshark
+# wireshark — скачивается отдельно: https://www.wireshark.org/download.html
+
+# SQL — SQLMap (тестирование SQL-инъекций)
+sqlmap>=1.8.0
+
+# Email — Анонимная почта (Mail.tm)
+# Не требует установки — работает через urllib (встроен в Python)
