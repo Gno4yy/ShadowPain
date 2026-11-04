@@ -218,30 +218,32 @@ echo chcp 65001 ^>nul
 echo title ShadowPain Dashboard
 echo.
 echo set PYTHON_CMD=
-echo if not "%%PYTHON_CMD%%"=="%%" where python ^>nul 2^>^&1 set PYTHON_CMD=python
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%USERPROFILE%%\Python312\python.exe" set PYTHON_CMD=%%USERPROFILE%%\Python312\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%USERPROFILE%%\AppData\Local\Programs\Python\Python312\python.exe" set PYTHON_CMD=%%USERPROFILE%%\AppData\Local\Programs\Python\Python312\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%USERPROFILE%%\AppData\Local\Programs\Python\Python311\python.exe" set PYTHON_CMD=%%USERPROFILE%%\AppData\Local\Programs\Python\Python311\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%PROGRAMFILES%%\Python312\python.exe" set PYTHON_CMD=%%PROGRAMFILES%%\Python312\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%PROGRAMFILES%%\Python311\python.exe" set PYTHON_CMD=%%PROGRAMFILES%%\Python311\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%PROGRAMFILES%%\Python310\python.exe" set PYTHON_CMD=%%PROGRAMFILES%%\Python310\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%PROGRAMFILES(x86)%%\Python312\python.exe" set PYTHON_CMD=%%PROGRAMFILES(x86)%%\Python312\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%PROGRAMFILES(x86)%%\Python311\python.exe" set PYTHON_CMD=%%PROGRAMFILES(x86)%%\Python311\python.exe
-echo if not "%%PYTHON_CMD%%"=="%%" if exist "%%PROGRAMFILES(x86)%%\Python310\python.exe" set PYTHON_CMD=%%PROGRAMFILES(x86)%%\Python310\python.exe
+echo for /f "delims=" %%i in ('where python 2^>nul') do set PYTHON_CMD=%%i
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\Python312\python.exe" set PYTHON_CMD=%%USERPROFILE%%\Python312\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\Python311\python.exe" set PYTHON_CMD=%%USERPROFILE%%\Python311\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\Python310\python.exe" set PYTHON_CMD=%%USERPROFILE%%\Python310\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%PROGRAMFILES%%\Python312\python.exe" set PYTHON_CMD=%%PROGRAMFILES%%\Python312\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%PROGRAMFILES%%\Python311\python.exe" set PYTHON_CMD=%%PROGRAMFILES%%\Python311\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%PROGRAMFILES%%\Python310\python.exe" set PYTHON_CMD=%%PROGRAMFILES%%\Python310\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%LOCALAPPDATA%%\Programs\Python\Python312\python.exe" set PYTHON_CMD=%%LOCALAPPDATA%%\Programs\Python\Python312\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%LOCALAPPDATA%%\Programs\Python\Python311\python.exe" set PYTHON_CMD=%%LOCALAPPDATA%%\Programs\Python\Python311\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\AppData\Local\Programs\Python\Python312\python.exe" set PYTHON_CMD=%%USERPROFILE%%\AppData\Local\Programs\Python\Python312\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\AppData\Local\Programs\Python\Python311\python.exe" set PYTHON_CMD=%%USERPROFILE%%\AppData\Local\Programs\Python\Python311\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\.local\bin\python.exe" set PYTHON_CMD=%%USERPROFILE%%\.local\bin\python.exe
+echo if "%%PYTHON_CMD%%"=="" if exist "%%USERPROFILE%%\.local\bin\python3.exe" set PYTHON_CMD=%%USERPROFILE%%\.local\bin\python3.exe
+echo if "%%PYTHON_CMD%%"=="" for %%f in ("%%USERPROFILE%%\.local\bin\python*.exe") do if exist "%%f" set PYTHON_CMD=%%f
 echo.
-echo if "%%PYTHON_CMD%%"=="%%" (
-echo     echo.
+echo if "%%PYTHON_CMD%%"=="" (
 echo     echo ERROR: Python not found!
-echo     echo.
-echo     echo Please install Python from: https://python.org
-echo     echo IMPORTANT: Check "Add Python to PATH" during installation
-echo     echo.
+echo     echo Install from: https://python.org
+echo     echo IMPORTANT: Check "Add Python to PATH"
 echo     pause
 echo     exit /b 1
 echo )
 echo.
 echo ShadowPain Dashboard
 echo ====================
+echo Using Python: %%PYTHON_CMD%%
 echo.
 echo %%PYTHON_CMD%% main.py
 echo.
