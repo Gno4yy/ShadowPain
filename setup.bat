@@ -35,9 +35,8 @@ if %errorlevel% equ 0 (
 ) else (
     echo [!] Python not found. Installing...
     echo Downloading Python...
-    set PYTHON_URL=https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe
     set PYTHON_INSTALLER=%TEMP%\python-installer.exe
-    powershell -Command "(New-Object Net.WebClient).DownloadFile('%PYTHON_URL%', '%PYTHON_INSTALLER%')"
+    powershell -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe' -OutFile '%PYTHON_INSTALLER%'"
     if exist "%PYTHON_INSTALLER%" (
         echo Installing Python silently...
         start /wait "" "%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1
@@ -101,7 +100,7 @@ if exist "%HASHCAT_DIR%\hashcat.exe" (
     mkdir "%HASHCAT_DIR%" 2>nul
     set HASHCAT_URL=https://github.com/hashcat/hashcat/releases/download/v6.6.2/hashcat-6.6.2.7z
     set HASHCAT_7Z=%TEMP%\hashcat.7z
-    powershell -Command "(New-Object Net.WebClient).DownloadFile('%HASHCAT_URL%', '%HASHCAT_7Z%')"
+    powershell -Command "Invoke-WebRequest -Uri 'https://github.com/hashcat/hashcat/releases/download/v6.6.2/hashcat-6.6.2.7z' -OutFile '%HASHCAT_7Z%'"
     if exist "%HASHCAT_7Z%" (
         echo Extracting...
         if exist "%~dp0portable\7z.exe" (
