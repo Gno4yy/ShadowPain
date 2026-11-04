@@ -1,21 +1,40 @@
 @echo off
 chcp 65001 >nul
 title ShadowPain Dashboard
-cls
 
-echo.
-echo   /\ \ \                                 
-echo  __     ___     ___\ \ \ \    __  __   __  __   __  __    
-echo /'_ `\ /' _ `\  / __`\ \ \ \_ /\ \/\ \ /\ \/\ \ /\ \/\ \   
-echo/\ \L\ \/\ \/\ \/\ \L\ \ \__ ,__\ \ \_\ \\ \_\ \\ \_\ \  
-echo\ \____ \ \_\ \_\ \____/\/_/\_\_/\/`____ \\/`____ \\/`____ \ 
-echo \/___L\ \/_/\/_/\/___/    \/_/   `/___/> \`/___/> \`/___/> \
-echo   /\____/                           /\___/   /\___/   /\___/
-echo   \_/__/                            \/__/    \/__/    \/__/
-echo.
-echo   ShadowPain Dashboard — Быстрый запуск
-echo.
+set PYTHON_CMD=
 
-python main.py
+:: Find python3*.exe in .local\bin (uv install)
+for /f "delims=" %%f in ('dir /b /a "%USERPROFILE%\.local\bin\python3*.exe" 2^>nul') do set PYTHON_CMD=%USERPROFILE%\.local\bin\%%f
+
+:: Fallback: PATH
+if "%PYTHON_CMD%"=="" where python >nul 2>&1 set PYTHON_CMD=python
+
+:: Fallback: other locations
+if "%PYTHON_CMD%"=="" if exist "%USERPROFILE%\AppData\Local\Programs\Python\Python312\python.exe" set PYTHON_CMD=%USERPROFILE%\AppData\Local\Programs\Python\Python312\python.exe
+if "%PYTHON_CMD%"=="" if exist "%USERPROFILE%\AppData\Local\Programs\Python\Python311\python.exe" set PYTHON_CMD=%USERPROFILE%\AppData\Local\Programs\Python\Python311\python.exe
+if "%PYTHON_CMD%"=="" if exist "%USERPROFILE%\AppData\Local\Python\pythoncore-3.12\python.exe" set PYTHON_CMD=%USERPROFILE%\AppData\Local\Python\pythoncore-3.12\python.exe
+if "%PYTHON_CMD%"=="" if exist "%PROGRAMFILES%\Python312\python.exe" set PYTHON_CMD=%PROGRAMFILES%\Python312\python.exe
+if "%PYTHON_CMD%"=="" if exist "%PROGRAMFILES%\Python311\python.exe" set PYTHON_CMD=%PROGRAMFILES%\Python311\python.exe
+
+if "%PYTHON_CMD%"=="" (
+    echo.
+    echo ERROR: Python not found!
+    echo.
+    echo Python is installed at:
+    echo   %USERPROFILE%\.local\bin\python3.15.exe
+    echo.
+    echo Add to PATH or run:
+    echo   "%USERPROFILE%\.local\bin\python3.15.exe" main.py
+    echo.
+    pause
+    exit /b 1
+)
+
+echo ShadowPain Dashboard
+echo ====================
+echo Using: %PYTHON_CMD%
+echo.
+%PYTHON_CMD% main.py
 
 pause
