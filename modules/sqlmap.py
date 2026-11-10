@@ -70,11 +70,22 @@ def get_sqlmap():
     if check_tool("sqlmap"):
         return "sqlmap"
     
-    # Стандартные пути
-    paths = [
-        r"C:\Program Files\sqlmap\sqlmap.py",
-        r"C:\sqlmap\sqlmap.py",
-    ]
+    # Фолбэк-пути для разных ОС (если sqlmap не в PATH)
+    paths = []
+    if sys.platform == "win32":
+        paths = [
+            r"C:\sqlmap\sqlmap.py",
+        ]
+    elif sys.platform == "darwin":
+        paths = [
+            "/usr/local/bin/sqlmap.py",
+        ]
+    else:
+        # Linux
+        paths = [
+            "/usr/local/bin/sqlmap.py",
+            "/opt/sqlmap/sqlmap.py",
+        ]
     
     for p in paths:
         if os.path.exists(p):
@@ -137,10 +148,16 @@ def _get_sqlmap_cmd():
             return exe
     
     # 3. site-packages — ищем sqlmap.py
-    site_packages = os.path.join(python_dir, "Lib", "site-packages")
-    for root, dirs, files in os.walk(site_packages):
-        if "sqlmap.py" in files:
-            return f'{sys.executable} "{os.path.join(root, "sqlmap.py")}"'
+    site_packages = os.path.join(python_dir, "lib", "python*", "site-packages")
+    import glob
+    matched = glob.glob(site_packages)
+    if not matched:
+        site_packages = os.path.join(python_dir, "Lib", "site-packages")
+        matched = [site_packages] if os.path.isdir(site_packages) else []
+    for sp_dir in matched:
+        for root, dirs, files in os.walk(sp_dir):
+            if "sqlmap.py" in files:
+                return f'{sys.executable} "{os.path.join(root, "sqlmap.py")}"'
     
     return "sqlmap"
 

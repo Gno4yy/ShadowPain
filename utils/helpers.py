@@ -79,11 +79,17 @@ def check_tool(name):
         if os.path.isfile(f"{script_path}.exe"):
             return True
     
-    # 3. Проверка в site-packages (для sqlmap.exe)
-    site_packages = os.path.join(python_dir, "Lib", "site-packages")
-    for root, dirs, files in os.walk(site_packages):
-        if name in files or f"{name}.exe" in files:
-            return True
+    # 3. Проверка в site-packages
+    import glob
+    site_packages_pattern = os.path.join(python_dir, "lib", "python*", "site-packages")
+    matched_sp = glob.glob(site_packages_pattern)
+    if not matched_sp:
+        alt_sp = os.path.join(python_dir, "Lib", "site-packages")
+        matched_sp = [alt_sp] if os.path.isdir(alt_sp) else []
+    for sp_dir in matched_sp:
+        for root, dirs, files in os.walk(sp_dir):
+            if name in files or f"{name}.exe" in files:
+                return True
     
     return False
 

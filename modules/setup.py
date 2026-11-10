@@ -129,7 +129,7 @@ def _install_python_packages_auto():
             if critical:
                 print_warning(f"  ! {pkg} — ошибка (попробуем без pandas)")
                 # Пробуем установить без pandas
-                run_command(f'{sys.executable} -m pip uninstall pandas -y 2>nul')
+                run_command(f'{sys.executable} -m pip uninstall pandas -y')
                 stdout, stderr, rc = run_command(f'{sys.executable} -m pip install "{pkg}"')
                 if rc == 0:
                     print_success(f"  ✓ {pkg} установлен (без pandas)")
@@ -270,8 +270,32 @@ pause
     with open(launcher_path, "w", encoding="utf-8") as f:
         f.write(launcher)
     
-    print_success(f"  Скрипт создан: {launcher_path}")
-    print_info("  Двойной клик для запуска!\n")
+    # Генерируем .sh для Linux/Mac
+    sh_launcher = r"""#!/bin/bash
+# ShadowPain Dashboard — Быстрый запуск
+clear
+echo ""
+echo "  /\ \ \                                 "
+echo " __     ___     ___\ \ \ \    __  __   __  __   __  __    "
+echo "/'_ `\ /' _ `\  / __`\ \ \ \_ /\ \/\ \ /\ \/\ \ /\ \/\ \   "
+echo "/\ \L\ \/\ \/\ \/\ \L\ \ \__ ,__\ \ \_\ \\ \_\ \\ \_\ \  "
+echo "\ \____ \ \_\ \_\ \____/\/_\_\_/\/`____ \/\____ \/\____ \"
+echo " \/___L\ \/_/\/_/\___/    \_/   `/___/> \`/___/> \`/___/> \"
+echo "   /\____/                           /\___/   /\___/   /\___/"
+echo "   \_/__/                            \/__/    \__/    \__/"
+echo ""
+echo "  ShadowPain Dashboard — Быстрый запуск"
+echo ""
+python3 main.py
+read -p "Нажмите Enter для выхода..."
+"""
+    sh_path = os.path.join(os.getcwd(), "ShadowPain.sh")
+    with open(sh_path, "w", encoding="utf-8") as f:
+        f.write(sh_launcher)
+    os.chmod(sh_path, 0o755)
+    
+    print_success(f"  Скрипты созданы: ShadowPain.bat (Windows), ShadowPain.sh (Linux/Mac)")
+    print_info("  Двойной клик для запуска .bat, или: bash ShadowPain.sh\n")
 
 
 def install_python_packages():
@@ -484,8 +508,32 @@ pause
     with open(launcher_path, "w", encoding="utf-8") as f:
         f.write(launcher)
     
-    print_success(f" Скрипт создан: {launcher_path}")
-    print_info(" Двойной клик для запуска!")
+    # Генерируем .sh для Linux/Mac
+    sh_launcher = r"""#!/bin/bash
+# ShadowPain Dashboard — Быстрый запуск
+clear
+echo ""
+echo "  /\ \ \                                 "
+echo " __     ___     ___\ \ \ \    __  __   __  __   __  __    "
+echo "/'_ `\ /' _ `\  / __`\ \ \ \_ /\ \/\ \ /\ \/\ \ /\ \/\ \   "
+echo "/\ \L\ \/\ \/\ \/\ \L\ \ \__ ,__\ \ \_\ \\ \_\ \\ \_\ \  "
+echo "\ \____ \ \_\ \_\ \____/\/_\_\_/\/`____ \/\____ \/\____ \"
+echo " \/___L\ \/_/\/_/\___/    \_/   `/___/> \`/___/> \`/___/> \"
+echo "   /\____/                           /\___/   /\___/   /\___/"
+echo "   \_/__/                            \/__/    \__/    \__/"
+echo ""
+echo "  ShadowPain Dashboard — Быстрый запуск"
+echo ""
+python3 main.py
+read -p "Нажмите Enter для выхода..."
+"""
+    sh_path = os.path.join(os.getcwd(), "ShadowPain.sh")
+    with open(sh_path, "w", encoding="utf-8") as f:
+        f.write(sh_launcher)
+    os.chmod(sh_path, 0o755)
+    
+    print_success(f" Скрипты созданы: ShadowPain.bat (Windows), ShadowPain.sh (Linux/Mac)")
+    print_info(" Двойной клик для .bat, или: bash ShadowPain.sh")
     
     if safe_input("  [Enter для продолжения...]") is None:
         sys.exit(0)

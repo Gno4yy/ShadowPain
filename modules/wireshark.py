@@ -65,11 +65,23 @@ def get_tshark():
     if check_tool("tshark"):
         return "tshark"
     
-    # Стандартные пути установки Wireshark на Windows
-    paths = [
-        r"C:\Program Files\Wireshark\tshark.exe",
-        r"C:\Program Files (x86)\Wireshark\tshark.exe",
-    ]
+    # Фолбэк-пути для разных ОС (если tshark не в PATH)
+    paths = []
+    if sys.platform == "win32":
+        paths = [
+            r"C:\Program Files\Wireshark\tshark.exe",
+            r"C:\Program Files (x86)\Wireshark\tshark.exe",
+        ]
+    elif sys.platform == "darwin":
+        paths = [
+            "/Applications/Wireshark.app/Contents/MacOS/tshark",
+        ]
+    else:
+        # Linux
+        paths = [
+            "/usr/bin/tshark",
+            "/usr/local/bin/tshark",
+        ]
     
     for p in paths:
         if os.path.exists(p):
@@ -241,7 +253,7 @@ def analyze_pcap():
             print_error(stderr)
     
     elif choice == "5":
-        cmd = f'tshark -r "{pcap_path}" -T fields -e ip.src 2>/dev/null | sort | uniq -c | sort -rn | head -5'
+        cmd = f'tshark -r "{pcap_path}" -T fields -e ip.src'
         stdout, _, _ = run_command(cmd)
         if stdout.strip():
             print_success("\n Топ-5 хостов:\n")

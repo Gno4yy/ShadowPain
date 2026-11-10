@@ -8,6 +8,9 @@ PySocks>=1.7.1
 sherlock-project>=0.15.0
 leaklook>=1.0.0
 
+# OSINT — Async HTTP для быстрого поиска по никнеймам
+aiohttp>=3.9.0
+
 # WiFi — Wifite (через WSL на Windows)
 # wifite2 — устанавливается в WSL: wsl sudo apt install wifite2
 
