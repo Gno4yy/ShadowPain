@@ -30,7 +30,7 @@ def main_menu():
         clear_screen()
         print_banner()
         print("  [1]  OSINT   — Поиск по никнейму (Sherlock/Quick)")
-        print("  [2]  WiFi    — Аудит WiFi (Wifite через WSL)")
+        print("  [2]  WiFi    — Аудит WiFi (кроссплатформенный)")
         print("  [3]  Hash    — Взлом хешей (Hashcat)")
         print("  [4]  Tor     — Настройка Tor-трафика")
         print("  [5]  Email   — Анонимная почта (Mail.tm)")

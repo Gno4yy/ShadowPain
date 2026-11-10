@@ -129,6 +129,27 @@ def list_interfaces():
     logger.info("Listed network interfaces")
 
 
+def parse_interfaces():
+    """Получить список интерфейсов из tshark -D и вернуть словарь {номер: имя}"""
+    cmd = "tshark -D"
+    stdout, _, rc = run_command(cmd)
+    if rc != 0 or not stdout.strip():
+        return {}
+    
+    interfaces = {}
+    for i, line in enumerate(stdout.strip().splitlines(), 1):
+        # Формат: "1. eth0 (Ethernet)" или "1. wlan0"
+        name = line.split("(", 0)[0].strip()
+        # Убираем номер в начале
+        name = name.split(".", 1)
+        if len(name) > 1:
+            name = name[1].strip()
+        else:
+            name = name[0].strip()
+        interfaces[i] = name
+    return interfaces
+
+
 def start_capture():
     """Захват пакетов в реальном времени"""
     print_info("Захват пакетов...\n")
@@ -149,12 +170,20 @@ def start_capture():
     print(" Доступные интерфейсы:")
     print(stdout)
     
-    iface_num = input("  Номер интерфейса (или 'all' для всех): ").strip()
+    # Парсим интерфейсы для маппинга номеров на имена
+    iface_map = parse_interfaces()
     
-    if iface_num.lower() == "all":
+    user_input = input("  Номер интерфейса (или 'all' для всех): ").strip()
+    
+    if user_input.lower() == "all":
         iface = "-i any"
     else:
-        iface = f"-i {iface_num}"
+        # Проверяем, введён номер или имя
+        if user_input.isdigit() and int(user_input) in iface_map:
+            iface_name = iface_map[int(user_input)]
+        else:
+            iface_name = user_input
+        iface = f"-i {iface_name}"
     
     duration = input("  Длительность захвата в секундах (0 = бесконечно): ").strip() or "0"
     output_file = input("  Сохранить в файл (.pcap) (пусто = не сохранять): ").strip()
@@ -299,8 +328,13 @@ def traffic_filter():
         print("Интерфейсы:")
         print(stdout)
         
-        iface_num = input("  Номер интерфейса: ").strip()
-        cmd = f'tshark -i {iface_num} -Y "{filter_expr}" -V'
+        iface_map = parse_interfaces()
+        iface_input = input("  Номер или имя интерфейса: ").strip()
+        if iface_input.isdigit() and int(iface_input) in iface_map:
+            iface_name = iface_map[int(iface_input)]
+        else:
+            iface_name = iface_input
+        cmd = f'tshark -i {iface_name} -Y "{filter_expr}" -V'
         
         try:
             subprocess.run(cmd, shell=True, check=True)
@@ -338,12 +372,17 @@ def live_monitor():
     print("Интерфейсы:")
     print(stdout)
     
-    iface_num = input("  Номер интерфейса: ").strip()
+    iface_map = parse_interfaces()
+    iface_input = input("  Номер или имя интерфейса: ").strip()
+    if iface_input.isdigit() and int(iface_input) in iface_map:
+        iface_name = iface_map[int(iface_input)]
+    else:
+        iface_name = iface_input
     
     print_info("Запуск мониторинга...\n")
     
     try:
-        subprocess.run(f'tshark -i {iface_num} -c 100', shell=True, check=True)
+        subprocess.run(f'tshark -i {iface_name} -c 100', shell=True, check=True)
         print_info("Захвачено 100 пакетов.")
     except KeyboardInterrupt:
         print_warning("\n Мониторинг остановлен.")

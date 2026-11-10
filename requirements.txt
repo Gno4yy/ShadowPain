@@ -11,8 +11,8 @@ leaklook>=1.0.0
 # OSINT — Async HTTP для быстрого поиска по никнеймам
 aiohttp>=3.9.0
 
-# WiFi — Wifite (через WSL на Windows)
-# wifite2 — устанавливается в WSL: wsl sudo apt install wifite2
+# WiFi — netsh (встроен в Windows)
+# aircrack-ng / wifite — устанавливаются отдельно: sudo apt install -y aircrack-ng wifite
 
 # Hash — Hashcat
 # hashcat — скачивается отдельно: https://hashcat.net/hashcat/
