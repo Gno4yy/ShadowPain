@@ -29,8 +29,8 @@
 
 ```powershell
 # Клонируем проект
-git clone <repo>
-cd "gno4yy project"
+git clone https://github.com/Gno4yy/ShadowPain
+cd ShadowPain
 
 # Устанавливаем Python-пакеты
 pip install -r requirements.txt
