@@ -1919,18 +1919,18 @@ SITE_CHECKS_PHONE_AUTH = {
     }
 
 
-async def _check_auth_site_async(site_name, session, url_template, value, sent_patterns, not_found_patterns, semaphore):
-    """Асинхронная проверка сайта через POST-запрос к форме регистрации/восстановления"""
+async def _check_auth_site_async(site_name, session, site_info, value, sent_patterns, not_found_patterns, semaphore):
+    """Асинхронная проверка сайта через POST/GET-запрос к форме регистрации/восстановления"""
     async with semaphore:
-        check_url = url_template.format(value)
+        check_url = site_info["url"].format(value)
         
         try:
             # Формируем данные для отправки
             data = {}
-            for field_name, field_template in url_template.get("fields", {}).items():
+            for field_name, field_template in site_info.get("fields", {}).items():
                 data[field_name] = field_template.format(value)
             
-            if url_template.get("method") == "POST":
+            if site_info.get("method") == "POST":
                 async with session.post(
                     check_url,
                     data=data,
