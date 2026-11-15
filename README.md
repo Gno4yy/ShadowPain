@@ -1,13 +1,13 @@
-# ShadowPain Dashboard — Pentest & OSINT Framework
+# ShadowPain Dashboard
 
-Многофайловая CLI-обёртка-дашборд для пентеста, OSINT-исследований и анализа безопасности.
-Работает на **Windows** и **Linux** без дополнительных зависимостей.
+> Многофайловая CLI-обёртка-дашборд для пентеста, OSINT-исследований и анализа безопасности.  
+> Работает на **Windows** и **Linux** без дополнительных зависимостей.
 
 ## Возможности
 
 | № | Модуль | Описание |
 |---|--------|----------|
-| 1 | **OSINT** | Поиск по никнейму — **97 сайтов** (соцсети, форумы, игры, крипто, блоги, маркетплейсы) |
+| 1 | **OSINT** | Поиск по никнейму — **297 сайтов** / по email — **147 сайтов** / по телефону — **93 сайта** (соцсети, форумы, игры, крипто, блоги, маркетплейсы) |
 | 2 | **WiFi** | Кроссплатформенный аудит: `netsh wlan` (Windows) / `airodump-ng` (Linux) |
 | 3 | **Hash** | Взлом / проверка хешей через Hashcat (словарь, brute-force, автоопределение режима) |
 | 4 | **Tor** | Проверка IP, ротация идентичности, настройка SOCKS-прокси |
@@ -107,6 +107,7 @@ python3 main.py
 ### WiFi-аудит: как это работает
 
 #### На Windows
+
 Модуль использует встроенную утилиту **`netsh wlan`** — ничего устанавливать не нужно:
 
 | Функция | Команда | Что делает |
@@ -118,6 +119,7 @@ python3 main.py
 > **Примечание:** для глубокого аудита (деаутентификация, захват рукопожатий) используйте Linux + aircrack-ng.
 
 #### На Linux
+
 Модуль использует **aircrack-ng** и **wifite** — полный набор для WiFi-аудита:
 
 | Функция | Команда | Что делает |
@@ -149,7 +151,7 @@ python3 main.py
 │   └── settings.py             # Настройки проекта
 ├── modules/
 │   ├── __init__.py
-│   ├── osint.py                # 97 сайтов, Sherlock + quick_search
+│   ├── osint.py                # 297 + 147 + 93 сайтов, Sherlock + quick_search
 │   ├── wifi.py                 # netsh (Win) / aircrack-ng (Linux)
 │   ├── hash.py                 # Hashcat (словарь, brute-force)
 │   ├── tor.py                  # IP, ротация, прокси
@@ -158,7 +160,10 @@ python3 main.py
 │   ├── sqlmap.py               # SQL-инъекции (GET/POST/cookies)
 │   ├── setup.py                # Автоустановка, проверка, portable
 │   ├── portable.py             # Portable-режим
-│   └── output_manager.py       # Управление файлами результатов
+│   ├── output_manager.py       # Управление файлами результатов
+│   ├── search_name.py          # Поиск по ФИО
+│   ├── search_ip.py            # Поиск по IP
+│   └── search_id.py            # Поиск по уникальному ID
 ├── utils/
 │   ├── __init__.py
 │   ├── logger.py               # Логирование в output/
@@ -173,7 +178,7 @@ python3 main.py
 - **Абсолютные пути** — output-файлы сохраняются независимо от рабочей директории
 - **sanitize_filename** — очистка имён файлов от недопустимых символов Windows
 - **Автоопределение sqlmap** — находит в PATH, Scripts, site-packages
-- **Fallback OSINT** — если Sherlock не установлен, автоматически quick_search через urllib
+- **Fallback OSINT** — если Sherlock не установлен, автоматически quick_search через asyncio + aiohttp
 - **SMTP-отправка** — Gmail, Outlook, Yandex, Mail.ru, ProtonMail + свой SMTP
 - **Кроссплатформенный WiFi** — netsh на Windows, aircrack-ng на Linux
 

@@ -558,7 +558,7 @@ def delete_account():
     email = _current_account["email"]
     password = _current_account["password"]
     
-    confirm = input("  >>> ").strip().lower()
+    confirm = input(f"  Delete account {email}? (y/n): ").strip().lower()
     if confirm != 'y':
         print_info(" Отменено.")
         if safe_input("  [Enter для продолжения...]") is None:

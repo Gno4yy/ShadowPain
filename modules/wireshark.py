@@ -139,7 +139,7 @@ def parse_interfaces():
     interfaces = {}
     for i, line in enumerate(stdout.strip().splitlines(), 1):
         # Формат: "1. eth0 (Ethernet)" или "1. wlan0"
-        name = line.split("(", 0)[0].strip()
+        name = line.split("(", 1)[0].strip()
         # Убираем номер в начале
         name = name.split(".", 1)
         if len(name) > 1:
@@ -217,7 +217,7 @@ def start_capture():
     
     if safe_input("  [Enter для продолжения...]") is None:
         sys.exit(0)
-    logger.info(f"Capture started on interface: {iface_num}")
+    logger.info(f"Capture started on interface: {iface}")
 
 
 def analyze_pcap():

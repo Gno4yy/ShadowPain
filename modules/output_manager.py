@@ -1,6 +1,6 @@
 """
 Output Manager Module — Управление файлами результатов
-Просмотр, удаление файлов из папки output/
+Просмотр, чтение, удаление файлов из папки output/
 """
 
 import os
@@ -37,7 +37,7 @@ def run_output_manager():
         else:
             print(f"  Файлов: {len(files)}\n")
             print("  \033[93m  №  |  Имя файла                    |  Размер  |  Дата\033[0m")
-            print("  " + "─" * 70)
+            print("  " + "\u2500" * 70)
             for i, f in enumerate(files, 1):
                 size_str = format_size(f["size"])
                 date_str = f["date"]
@@ -45,21 +45,24 @@ def run_output_manager():
                 print(f"  \033[94m  {i:2d}  |  {name:<25s} |  {size_str:>6s}  |  {date_str}\033[0m")
             print()
         
-        print("  [1]  Очистить все файлы")
-        print("  [2]  Удалить выбранный файл")
-        print("  [3]  Удалить по паттерну")
-        print("  [4]  Открыть папку output")
+        print("  [1]  Просмотреть файл")
+        print("  [2]  Очистить все файлы")
+        print("  [3]  Удалить выбранный файл")
+        print("  [4]  Удалить по паттерну")
+        print("  [5]  Открыть папку output")
         print("  [0]  Назад\n")
         
         choice = input("  >>> Ваш выбор: ").strip()
         
         if choice == "1":
-            clear_all_files()
+            view_file()
         elif choice == "2":
-            delete_single_file()
+            clear_all_files()
         elif choice == "3":
-            delete_by_pattern()
+            delete_single_file()
         elif choice == "4":
+            delete_by_pattern()
+        elif choice == "5":
             open_output_folder()
         elif choice == "0":
             break
@@ -93,11 +96,85 @@ def get_output_files():
 
 def format_size(size_bytes):
     """Форматирование размера файла"""
-    for unit in ["Б", "КБ", "МБ", "ГБ"]:
+    for unit in ["B", "KB", "MB", "GB"]:
         if size_bytes < 1024:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024
-    return f"{size_bytes:.1f} ТБ"
+    return f"{size_bytes:.1f} TB"
+
+
+def view_file():
+    """Просмотр содержимого файла в терминале"""
+    files = get_output_files()
+    
+    if not files:
+        print_info(" Папка output/ пуста.\n")
+        if safe_input("  [Enter для продолжения...]") is None:
+            sys.exit(0)
+        return
+    
+    print("\n  Доступные файлы:\n")
+    for i, f in enumerate(files, 1):
+        size_str = format_size(f["size"])
+        print(f"    [{i:2d}] {f['name']:<30s} ({size_str})")
+    print()
+    
+    try:
+        num = int(input("  Номер файла для просмотра: ").strip()) - 1
+        if 0 <= num < len(files):
+            f = files[num]
+            filepath = f["path"]
+            
+            # Проверяем размер файла
+            file_size = os.path.getsize(filepath)
+            if file_size > 5 * 1024 * 1024:  # 5 MB
+                print_warning(f" Файл большой ({format_size(file_size)}). Просмотр может занять время.\n")
+                cont = input("  Продолжить? (y/n): ").strip().lower()
+                if cont != 'y':
+                    print_info(" Просмотр отменён.")
+                    if safe_input("  [Enter для продолжения...]") is None:
+                        sys.exit(0)
+                    return
+            
+            # Читаем и выводим содержимое
+            try:
+                with open(filepath, "r", encoding="utf-8", errors="replace") as fh:
+                    content = fh.read()
+                
+                print(f"\n  === Содержимое: {f['name']} ===\n")
+                
+                # Если файл слишком большой, показываем постранично
+                lines = content.split('\n')
+                if len(lines) > 100:
+                    print_warning(f" Файл содержит {len(lines)} строк. Показываю первые 100.\n")
+                    lines = lines[:100]
+                
+                for line in lines:
+                    print(f"  {line}")
+                
+                print(f"\n  --- Конец файла ({len(content.split(chr(10)))} строк) ---")
+                
+            except UnicodeDecodeError:
+                # Пробуем другие кодировки
+                try:
+                    with open(filepath, "r", encoding="latin-1") as fh:
+                        content = fh.read()
+                    print(f"\n  === Содержимое: {f['name']} (latin-1) ===\n")
+                    print(content[:10000])
+                except Exception as e2:
+                    print_error(f" Не удалось прочитать файл: {e2}")
+                    print_info(f" Это может быть бинарный файл.")
+            except Exception as e:
+                print_error(f" Ошибка чтения файла: {e}")
+        else:
+            print_error(" Неверный номер.")
+    except ValueError:
+        print_error(" Введите число.")
+    except Exception as e:
+        print_error(f" Ошибка: {e}")
+    
+    if safe_input("  [Enter для продолжения...]") is None:
+        sys.exit(0)
 
 
 def clear_all_files():

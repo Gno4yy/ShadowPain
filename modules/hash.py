@@ -83,8 +83,34 @@ def hash_attack_dict():
     try:
         subprocess.run(cmd, shell=True, check=True)
         print_success("Атака завершена!")
+        print()
+        print_info("Результаты:")
+        hash_file = os.path.join(_project_root, "output", ".hashcat-hash")
+        try:
+            with open(hash_file, "w") as hf:
+                hf.write(hash_input)
+            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            try:
+                os.remove(hash_file)
+            except OSError:
+                pass
+        except Exception:
+            print_warning(" Cannot show result.")
     except KeyboardInterrupt:
         print_warning("Атака остановлена.")
+        print()
+        print_info("Результаты:")
+        hash_file = os.path.join(_project_root, "output", ".hashcat-hash")
+        try:
+            with open(hash_file, "w") as hf:
+                hf.write(hash_input)
+            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            try:
+                os.remove(hash_file)
+            except OSError:
+                pass
+        except Exception:
+            print_warning(" Cannot show result.")
     except Exception as e:
         print_error(f"Ошибка: {e}")
     
@@ -118,8 +144,34 @@ def hash_attack_brute():
     try:
         subprocess.run(cmd, shell=True, check=True)
         print_success("Атака завершена!")
+        print()
+        print_info("Результаты:")
+        hash_file = os.path.join(_project_root, "output", ".hashcat-hash")
+        try:
+            with open(hash_file, "w") as hf:
+                hf.write(hash_input)
+            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            try:
+                os.remove(hash_file)
+            except OSError:
+                pass
+        except Exception:
+            print_warning(" Cannot show result.")
     except KeyboardInterrupt:
         print_warning("Атака остановлена.")
+        print()
+        print_info("Результаты:")
+        hash_file = os.path.join(_project_root, "output", ".hashcat-hash")
+        try:
+            with open(hash_file, "w") as hf:
+                hf.write(hash_input)
+            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            try:
+                os.remove(hash_file)
+            except OSError:
+                pass
+        except Exception:
+            print_warning(" Cannot show result.")
     except Exception as e:
         print_error(f"Ошибка: {e}")
     
