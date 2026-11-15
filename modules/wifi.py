@@ -328,7 +328,7 @@ def run_wifite():
         return
 
     try:
-        subprocess.run("wifite", shell=True, check=True)
+        subprocess.run("wifite --kill", shell=True, check=True)
         print_success("wifite завершён.")
     except KeyboardInterrupt:
         print_warning(" wifite остановлен пользователем.")

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import os
 import time
+import platform
 
 # Добавляем корень проекта в путь при запуске напрямую
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -128,6 +129,27 @@ def list_interfaces():
         sys.exit(0)
     logger.info("Listed network interfaces")
 
+
+
+def get_default_interface():
+    """Автоматически выбрать первый доступный сетевой интерфейс (не loopback, не any)"""
+    cmd = "tshark -D"
+    stdout, _, rc = run_command(cmd)
+    if rc != 0 or not stdout.strip():
+        return None
+    
+    for line in stdout.strip().splitlines():
+        name = line.split("(", 1)[0].strip()
+        name = name.split(".", 1)
+        if len(name) > 1:
+            name = name[1].strip()
+        else:
+            name = name[0].strip()
+        # Пропускаем loopback и any
+        if name.lower() in ("any", "loopback", "lo", "lo0"):
+            continue
+        return name
+    return None
 
 def parse_interfaces():
     """Получить список интерфейсов из tshark -D и вернуть словарь {номер: имя}"""
@@ -401,13 +423,23 @@ def capture_dns():
     if not check_tshark():
         return
     
+    # Автоматический выбор интерфейса
+    default_iface = get_default_interface()
+    if default_iface:
+        print_info(f"  Интерфейс: {default_iface}")
+    else:
+        print_error(" Не удалось определить интерфейс.")
+        if safe_input("  [Enter для продолжения...]") is None:
+            sys.exit(0)
+        return
+    
     pcap_path = input("  Сохранить в .pcap (пусто = нет): ").strip()
     
     if pcap_path.lower() == "yes" or pcap_path.lower() == "y":
         pcap_path = input("  Имя файла: ").strip() or "dns_capture.pcap"
-        cmd = f'tshark -i any -Y "dns" -w "{pcap_path}" -V'
+        cmd = f'tshark -i "{default_iface}" -Y "dns" -w "{pcap_path}" -V'
     else:
-        cmd = 'tshark -i any -Y "dns" -T fields -e dns.qry.name -e dns.a'
+        cmd = f'tshark -i "{default_iface}" -Y "dns" -T fields -e dns.qry.name -e dns.a'
     
     print_info("Перехват DNS-запросов...\n")
     print_info("Запрашиваемые домены:\n")
@@ -427,8 +459,20 @@ def capture_dns():
 def capture_http():
     """Перехват HTTP-трафика"""
     print_info("Перехват HTTP-запросов\n")
+
     print_warning(" Внимание: HTTPS-трафик зашифрован и не будет виден!\n")
     
+
+    # Автоматический выбор интерфейса
+    default_iface = get_default_interface()
+    if default_iface:
+        print_info(f"  Интерфейс: {default_iface}")
+    else:
+        print_error(" Не удалось определить интерфейс.")
+        if safe_input("  [Enter для продолжения...]") is None:
+            sys.exit(0)
+        return
+
     if not check_tshark():
         return
     
@@ -436,9 +480,9 @@ def capture_http():
     
     if pcap_path.lower() == "yes" or pcap_path.lower() == "y":
         pcap_path = input("  Имя файла: ").strip() or "http_capture.pcap"
-        cmd = f'tshark -i any -Y "http.request" -T fields -e ip.src -e http.host -e http.request.uri -w "{pcap_path}"'
+        cmd = f'tshark -i "{default_iface}" -Y "http.request" -T fields -e ip.src -e http.host -e http.request.uri -w "{pcap_path}"'
     else:
-        cmd = 'tshark -i any -Y "http.request" -T fields -e ip.src -e http.host -e http.request.uri'
+        cmd = f'tshark -i "{default_iface}" -Y "http.request" -T fields -e ip.src -e http.host -e http.request.uri'
     
     print_info("Перехват HTTP-запросов...\n")
     print_info("Столбцы: IP-источник | Домен | URI\n")

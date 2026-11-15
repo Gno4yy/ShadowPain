@@ -7,6 +7,7 @@ import sys
 import os
 import socket
 import time
+import platform
 
 # Добавляем корень проекта в путь при запуске напрямую
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,8 +23,71 @@ from utils.logger import setup_logger
 logger = setup_logger()
 
 
+
+def launch_tor():
+    """Запуск Tor-демона"""
+    print_info("Запуск Tor-демона...")
+    
+    system = platform.system()
+    
+    if system == "Windows":
+        # Пробуем запустить tor.exe
+        try:
+            result = subprocess.run(
+                "tor.exe",
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                print_success("Tor запущен.")
+            else:
+                print_warning(" Не удалось запустить Tor через tor.exe.")
+                print_info(" Попробуйте: tor.exe --defaults-prefix")
+        except FileNotFoundError:
+            print_warning(" tor.exe не найден в PATH.")
+            print_info(" Убедитесь, что Tor установлен и добавлен в PATH.")
+        except subprocess.TimeoutExpired:
+            # Таймаут при запуске - это нормально, тор запустился в фоне
+            print_success("Tor запущен в фоновом режиме.")
+        except Exception as e:
+            print_error(f" Ошибка запуска: {e}")
+    
+    elif system == "Linux":
+        # Пробуем через systemctl или напрямую
+        try:
+            result = subprocess.run(
+                "sudo systemctl start tor && sudo systemctl enable tor",
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+            if result.returncode == 0:
+                print_success("Tor запущен через systemctl.")
+            else:
+                # Альтернатива: запустить tor напрямую
+                print_info(" Пробуем запустить tor напрямую...")
+                subprocess.run("tor &", shell=True)
+                print_success("Tor запущен.")
+        except Exception as e:
+            print_error(f" Ошибка запуска: {e}")
+            print_info(" Попробуйте вручную: sudo systemctl start tor")
+    
+    else:
+        print_warning(f" Неизвестная платформа: {system}")
+        print_info(" Запустите Tor вручную.")
+    
+    # Ждём инициализацию
+    print_info(" Ожидание инициализации Tor (5 сек)...")
+    time.sleep(5)
+
 def run_tor_module():
     """Модуль работы с Tor"""
+    # Автоматический запуск Tor при входе в модуль
+    launch_tor()
+    
     while True:
         clear_screen()
         print_banner()
