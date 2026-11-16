@@ -548,6 +548,38 @@ def show_saved_networks():
 
 
 # ========================
+#  Wifite (Linux)
+# ========================
+
+def run_wifite():
+    """Запуск wifite для автоматизированного аудита WiFi (Linux)"""
+    if not _is_linux():
+        print_warning(" Wifite доступен только на Linux.")
+        print_info(" Для Windows используйте другие инструменты.\n")
+        safe_input("  [Enter для продолжения...]")
+        return
+
+    if not _check_linux_tool("wifite"):
+        print_error(" wifite не установлен.")
+        print_info(" Установите: sudo apt install -y wifite")
+        safe_input("  [Enter для продолжения...]")
+        return
+
+    print_info("Запуск wifite (автоматизированный аудит WiFi)...\n")
+    print_warning("  ⚠  Используйте только на своих сетях или с разрешения владельца!\n")
+
+    try:
+        subprocess.run(["sudo", "wifite"], check=False)
+    except KeyboardInterrupt:
+        print_warning("\n  Wifite остановлен.")
+    except Exception as e:
+        print_error(f"  Ошибка: {e}")
+
+    print_info("\n  Совет: для ручной работы используйте airodump-ng + aircrack-ng")
+    safe_input("  [Enter для продолжения...]")
+
+
+# ========================
 #  Старая совместимость
 # ========================
 
