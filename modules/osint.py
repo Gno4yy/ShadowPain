@@ -25,7 +25,6 @@ from utils.helpers import (
 from utils.logger import setup_logger
 from modules.search_name import search_by_name as _search_by_name
 from modules.search_ip import search_by_ip as _search_by_ip
-from modules.search_id import search_by_unique_id as _search_by_unique_id
 
 logger = setup_logger()
 
@@ -1499,6 +1498,242 @@ SITE_CHECKS_PHONE = {
     }
 
 
+# ============================================================
+# Google Dorking Module
+# ============================================================
+
+def _build_dork_query(target, dork_type):
+    """Собирает Google-запрос из дорка и цели"""
+    dork_map = {
+        "site":       f"site:{target}",
+        "filetype":   f"filetype:pdf OR filetype:xlsx OR filetype:docx OR filetype:csv OR filetype:pptx {target}",
+        "inurl":      f"inurl:{target}",
+        "intitle":    f'intitle:"index of" {target}',
+        "intext":     f'intext:"{target}"',
+        "allinurl":   f"allinurl:{target}",
+        "allintitle": f'allintitle:"{target}"',
+        "allintext":  f'allintext:"{target}"',
+        "cache":      f"cache:{target}",
+        "link":       f"link:{target}",
+        "related":    f"related:{target}",
+        "info":       f"info:{target}",
+        "before":     f"{target} before:2024",
+        "after":      f"{target} after:2020",
+        "exact":      f'"{target}"',
+        "exclude":    f'{target} -forum -blog -reddit.com -quora.com -github.com',
+        "login":      f'"{target}" (inurl:login OR inurl:signin OR inurl:admin OR inurl:dashboard)',
+        "config":     f'"{target}" (filetype:env OR filetype:yaml OR filetype:json OR filetype:xml OR filetype:conf)',
+        "db":         f'"{target}" (filetype:sql OR filetype:db OR filetype:sqlite OR filetype:mdb)',
+        "key":        f'"{target}" (api_key OR secret OR token OR password OR private_key)',
+        "email_list": f'"{target}" (filetype:csv OR filetype:txt OR filetype:xlsx) (email OR mail OR contact)',
+        "backup":     f'"{target}" (filetype:bak OR filetype:zip OR filetype:rar OR filetype:7z OR filetype:tar.gz)',
+    }
+    return dork_map.get(dork_type, f'"{target}"')
+
+
+def _search_google(dork_query, max_results=20):
+    """Выполняет поиск через Google (через альтернативные движки) и возвращает результаты"""
+    results = []
+    encoded = urllib.parse.quote(dork_query)
+    
+    # Список альтернативных поисковых систем (Google блокирует частые запросы)
+    engines = [
+        ("SearXNG (public)", f"https://searx.si/search?q={encoded}&format=json"),
+        ("SearXNG (EU)", f"https://searx.org/search?q={encoded}&format=json"),
+        ("Qwant", f"https://www.qwant.com/search/web?q={encoded}"),
+        ("DuckDuckGo HTML", f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(dork_query)}"),
+        ("Brave Search", f"https://search.brave.com/search?q={encoded}"),
+    ]
+    
+    for engine_name, url in engines:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            resp = urllib.request.urlopen(req, timeout=10, context=ctx)
+            data = resp.read().decode("utf-8", errors="ignore")
+            final_url = resp.geturl()
+            
+            # SearXNG JSON format
+            if "searx" in engine_name.lower() and "format=json" in url:
+                try:
+                    json_data = json.loads(data)
+                    for item in json_data.get("results", [])[:max_results]:
+                        title = item.get("title", "")
+                        url_result = item.get("url", "")
+                        snippet = item.get("content", "")
+                        if title and url_result:
+                            results.append({
+                                "engine": engine_name,
+                                "title": title,
+                                "url": url_result,
+                                "snippet": snippet[:300]
+                            })
+                    if results:
+                        break  # Нашли результаты — выходим
+                except (json.JSONDecodeError, KeyError):
+                    continue
+            
+            # DuckDuckGo HTML format
+            elif "duckduckgo" in engine_name.lower():
+                matches = re.findall(
+                    r'<a class="result__a" href="([^"]+)"[^>]*>(.+?)</a>',
+                    data, re.DOTALL
+                )
+                snippet_matches = re.findall(
+                    r'<a class="result__snippet"[^>]*>(.+?)</a>',
+                    data, re.DOTALL
+                )
+                for (title, url_result), snippet in zip(matches, snippet_matches):
+                    title = re.sub(r'<[^>]+>', '', title).strip()
+                    snippet = re.sub(r'<[^>]+>', '', snippet).strip()
+                    if title and url_result and not url_result.startswith("javascript"):
+                        results.append({
+                            "engine": engine_name,
+                            "title": title,
+                            "url": url_result,
+                            "snippet": snippet[:300]
+                        })
+                    if len(results) >= max_results:
+                        break
+                if results:
+                    break
+            
+            # Qwant / Brave — парсим HTML
+            else:
+                title_matches = re.findall(
+                    r'<h[1-3][^>]*class="[^"]*"(?:\s+[^>]*)?>(.+?)</h[1-3]>',
+                    data, re.DOTALL
+                )
+                url_matches = re.findall(
+                    r'<a[^>]*href="([^"]+)"[^>]*class="[^"]*result[^"]*"[^>]*>(?!<)',
+                    data, re.IGNORECASE
+                )
+                if not url_matches:
+                    url_matches = re.findall(r'<a[^>]*href="([^"]+)"', data, re.IGNORECASE)
+                
+                for title, url_result in zip(title_matches, url_matches):
+                    title = re.sub(r'<[^>]+>', '', title).strip()
+                    if title and url_result and not url_result.startswith("javascript"):
+                        results.append({
+                            "engine": engine_name,
+                            "title": title,
+                            "url": url_result,
+                            "snippet": ""
+                        })
+                    if len(results) >= max_results:
+                        break
+                if results:
+                    break
+                    
+        except Exception:
+            continue
+    
+    return results
+
+
+def google_dork_search():
+    """Google Dorking — продвинутый поиск через специальные запросы"""
+    from utils.helpers import clear_screen, print_banner, print_info, print_success, print_warning, print_error, save_output, safe_input
+    
+    clear_screen()
+    print_banner()
+    print("\n  === Google Dorking — Продвинутый поиск ===\n")
+    print("  Доступные типы дорков:\n")
+    print("  [1]   site       — Поиск на конкретном сайте")
+    print("  [2]   filetype   — Поиск файлов (pdf, xlsx, docx, csv...)")
+    print("  [3]   inurl      — Поиск слов в URL")
+    print("  [4]   intitle    — Поиск слов в заголовке страницы")
+    print("  [5]   intext     — Поиск слов в тексте страницы")
+    print("  [6]   allintitle — Все слова в заголовке")
+    print("  [7]   allintext  — Все слова в тексте")
+    print("  [8]   exact      — Точная фраза")
+    print("  [9]   exclude    — Исключить мусор (форумы, блоги)")
+    print("  [10]  login      — Страницы входа / админки")
+    print("  [11]  config     — Файлы конфигурации (.env, .yaml, .json)")
+    print("  [12]  db         — Базы данных (.sql, .db, .sqlite)")
+    print("  [13]  key        — API-ключи, токены, пароли")
+    print("  [14]  email_list — Списки email-адресов")
+    print("  [15]  backup     — Бэкапы (.bak, .zip, .rar)")
+    print("  [0]   Назад\n")
+    
+    choice = input("  >>> Ваш выбор: ").strip()
+    
+    dork_types = {
+        "1": "site",
+        "2": "filetype",
+        "3": "inurl",
+        "4": "intitle",
+        "5": "intext",
+        "6": "allintitle",
+        "7": "allintext",
+        "8": "exact",
+        "9": "exclude",
+        "10": "login",
+        "11": "config",
+        "12": "db",
+        "13": "key",
+        "14": "email_list",
+        "15": "backup",
+    }
+    
+    if choice == "0":
+        return
+    
+    if choice not in dork_types:
+        print_error("Неверный выбор.")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    target = input("  Введите запрос / домен / название: ").strip()
+    if not target:
+        print_error("Запрос не может быть пустым!")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    dork_type = dork_types[choice]
+    dork_query = _build_dork_query(target, dork_type)
+    
+    print_info(f"\n  Тип дорка: {dork_type}")
+    print_info(f"  Запрос: {dork_query}\n")
+    print_info("  Ищу...\n")
+    
+    results = _search_google(dork_query, max_results=20)
+    
+    if results:
+        print_success(f"  Найдено {len(results)} результатов:\n")
+        print(f"  {'#':<4} {'Title':<45} {'URL'}")
+        print(f"  {'─'*95}\n")
+        
+        for idx, r in enumerate(results, 1):
+            title_short = (r['title'][:42] + "...") if len(r['title']) > 45 else r['title']
+            url_short = (r['url'][:50] + "...") if len(r['url']) > 50 else r['url']
+            print(f"  {idx:<4} \033[92m{title_short}\033[0m")
+            print(f"       \033[94m{url_short}\033[0m")
+            if r.get('snippet'):
+                print(f"       \033[90m{r['snippet'][:200]}\033[0m")
+            print()
+    else:
+        print_warning("  Результаты не найдены. Попробуйте другой запрос или тип дорка.")
+    
+    # Сохраняем результаты
+    output_text = f"Google Dorking\nТип: {dork_type}\nЗапрос: {dork_query}\n\n"
+    for idx, r in enumerate(results, 1):
+        output_text += f"  {idx}. {r['title']}\n     {r['url']}\n"
+        if r.get('snippet'):
+            output_text += f"     {r['snippet'][:200]}\n"
+        output_text += "\n"
+    
+    if results:
+        filepath = save_output(f"dork_{dork_type}_{sanitize_filename(target)}.txt", output_text)
+        print_info(f"  Результат сохранён в: {filepath}")
+    
+    safe_input("\n  [Enter для продолжения...]")
+
+
+# ============================================================
+# OSINT Module Entry Point
+# ============================================================
+
+
 def run_osint_module():
     """Модуль OSINT — расширенный поиск по различным данным"""
     while True:
@@ -1510,7 +1745,7 @@ def run_osint_module():
         print("  [3]  Поиск по ФИО и дате рождения")
         print("  [4]  Поиск по email")
         print("  [5]  Поиск по IP-адресу")
-        print("  [6]  Поиск по уникальному ID (VK, Telegram, YouTube)")
+        print("  [6]  Google Dorking — продвинутый поиск в Google")
         print("  [0]  Назад\n")
         
         choice = input("  >>> Ваш выбор: ").strip()
@@ -1542,15 +1777,9 @@ def run_osint_module():
                 continue
             search_by_email(email)
         elif choice == "5":
-            ip = input("\n  Введите IP-адрес: ").strip()
-            if not ip:
-                print_error("IP-адрес не может быть пустым!")
-                if safe_input("  [Enter для продолжения...]") is None:
-                    sys.exit(0)
-                continue
             _search_by_ip(ip)
         elif choice == "6":
-            _search_by_unique_id()
+            google_dork_search()
         elif choice == "0":
             break
         else:

