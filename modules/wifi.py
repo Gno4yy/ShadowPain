@@ -637,7 +637,7 @@ def run_wifite():
     print_warning("  ⚠  Используйте только на своих сетях или с разрешения владельца!\n")
 
     try:
-        subprocess.run(["wifite"], check=False)
+        subprocess.run(["wifite", "--kill"], check=False)
     except KeyboardInterrupt:
         print_warning("\n  Wifite остановлен.")
     except Exception as e:
