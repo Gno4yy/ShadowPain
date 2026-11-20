@@ -121,11 +121,10 @@ def check_sqlmap():
     print("  Вариант 2: git clone https://github.com/sqlmapproject/sqlmap.git")
     print("  Вариант 3: https://sqlmap.org/\n")
     
-    confirm = input("  Установить через pip? (y/n): ").strip().lower()
+    confirm = input("  Установить через git? (y/n): ").strip().lower()
     if confirm == "y":
-        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install sqlmap')
-        if rc == 0:
-            print_success(" sqlmap установлен!")
+        run_command('git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev')
+        print_success(" sqlmap установлен!")
         else:
             print_error(f" Ошибка: {stderr}")
     return False

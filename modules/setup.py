@@ -109,43 +109,36 @@ def auto_install_all():
 
 
 def _install_python_packages_auto():
-    """Автоматическая установка Python-пакетов"""
-    packages = [
-        ("requests", False),
-        ("PySocks", False),
-        ("sherlock-project", True),
-        ("wifite2", False),
-        ("sqlmap", False),
-    ]
+    """Автоматическая установка Python-пакетов через git"""
+    repos = {
+        "sherlock-project": ("https://github.com/sherlock-project/sherlock.git", "sherlock"),
+        "wifite2": ("https://github.com/derv82/wifite2.git", "wifite2"),
+    }
     
     installed = 0
     failed = 0
     
-    for pkg, critical in packages:
-        print_info(f"  Установка {pkg}...")
-        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install "{pkg}"')
+    for pkg, (url, dirname) in repos.items():
+        print_info(f"  Установка {pkg} через git...")
         
-        if rc == 0:
-            print_success(f"  ✓ {pkg} установлен")
-            installed += 1
-        else:
-            if critical:
-                print_warning(f"  ! {pkg} — ошибка (попробуем без pandas)")
-                # Пробуем установить без pandas
-                run_command(f'{sys.executable} -m pip uninstall pandas -y')
-                stdout, stderr, rc = run_command(f'{sys.executable} -m pip install "{pkg}"')
-                if rc == 0:
-                    print_success(f"  ✓ {pkg} установлен (без pandas)")
-                    installed += 1
-                else:
-                    print_error(f"  ✗ {pkg} — не установлен")
-                    failed += 1
+        # Сначала клонируем
+        rc_clone = run_command(f'git clone {url} {dirname}')[2]
+        
+        if rc_clone == 0:
+            # Затем устанавливаем через pip
+            stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./{dirname}')
+            if rc == 0:
+                print_success(f"  ✓ {pkg} установлен")
+                installed += 1
             else:
-                print_warning(f"  ! {pkg} — не установлен (не критично)")
+                print_error(f"  ✗ {pkg} — ошибка установки")
                 failed += 1
+        else:
+            print_error(f"  ✗ {pkg} — не удалось клонировать")
+            failed += 1
     
-    print(f"\n  Установлено: {installed}/{len(packages)}")
-    return installed == len(packages)
+    print(f"\n  Установлено: {installed}/{len(repos)}")
+    return installed == len(repos)
 
 
 def check_all_installed():
@@ -302,24 +295,29 @@ read -p "Нажмите Enter для выхода..."
 
 
 def install_python_packages():
-    """Установка Python-пакетов"""
-    print_info("Установка Python-пакетов...\n")
+    """Установка Python-пакетов через git"""
+    print_info("Установка Python-пакетов через git...\n")
     
-    packages = [
-        "requests",
-        "PySocks",
-        "sherlock-project",
-        "wifite2",
-    ]
+    repos = {
+        "sherlock-project": ("https://github.com/sherlock-project/sherlock.git", "sherlock"),
+        "wifite2": ("https://github.com/derv82/wifite2.git", "wifite2"),
+    }
     
-    for pkg in packages:
+    for pkg, (url, dirname) in repos.items():
         print_info(f"Установка {pkg}...")
-        stdout, stderr, rc = run_command(f'pip install "{pkg}"')
         
-        if rc == 0:
-            print_success(f"  {pkg} установлен")
+        # Сначала клонируем
+        rc_clone = run_command(f'git clone {url} {dirname}')[2]
+        
+        if rc_clone == 0:
+            # Затем устанавливаем через pip
+            stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./{dirname}')
+            if rc == 0:
+                print_success(f"  {pkg} установлен")
+            else:
+                print_error(f"  {pkg} — ошибка: {stderr[:100]}")
         else:
-            print_error(f"  {pkg} — ошибка: {stderr[:100]}")
+            print_error(f"  {pkg} — не удалось клонировать")
     
     print()
     print_success(" Установка Python-пакетов завершена!")

@@ -1851,23 +1851,19 @@ def search_auto(username):
     
     # 1. Ставим зависимости через python -m pip
     print_info("Устанавливаем зависимости...")
-    run_command(f'{sys.executable} -m pip install requests colorama prettytable tldextract')
+    run_command(f'{sys.executable} -m pip install --break-system-packages requests colorama prettytable tldextract')
     
-    # 2. Пробуем стандартную установку
-    print_info("Устанавливаем Sherlock...")
-    stdout, stderr, rc = run_command(f'{sys.executable} -m pip install sherlock-project')
-    
-    if rc != 0:
-        # 3. Пробуем без pandas
-        print_info("  Пробуем без pandas...")
-        run_command(f'{sys.executable} -m pip uninstall pandas -y')
-        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install sherlock-project')
+    # 2. Устанавливаем Sherlock через git
+    print_info("Устанавливаем Sherlock через git...")
+    stdout, stderr, rc = run_command('git clone https://github.com/sherlock-project/sherlock.git')
+    if rc == 0:
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./sherlock')
     
     if rc == 0 and check_tool("sherlock"):
         installed = True
         print_success("  Sherlock установлен!\n")
     
-    # 4. Запускаем Sherlock
+    # 3. Запускаем Sherlock
     if installed:
         print_info("Запускаем Sherlock...\n")
         cmd = f'sherlock --print-all "{username}"'
@@ -1884,7 +1880,7 @@ def search_auto(username):
             logger.info(f"OSINT search completed for: {username} (Sherlock)")
             return
     
-    # 5. Sherlock не работает — автоматически переходим к быстрому поиску
+    # 4. Sherlock не работает — автоматически переходим к быстрому поиску
     print_warning("  Sherlock недоступен. Переход к быстрому поиску...\n")
     quick_search(username)
 
@@ -2700,13 +2696,15 @@ def search_email_holehe(email):
     # Проверка и установка Holehe
     installed = check_tool("holehe")
     if not installed:
-        print_info("  Устанавливаем Holehe...\n")
-        run_command(f'{sys.executable} -m pip install holehe')
+        print_info("  Устанавливаем Holehe через git...\n")
+        run_command('git clone https://github.com/megadose/holehe.git')
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./holehe')
         installed = check_tool("holehe")
     
     if not installed:
         print_error("  Holehe не установлен. Установите вручную:")
-        print_info("  pip install holehe")
+        print_info("  git clone https://github.com/megadose/holehe.git")
+        print_info("  pip install ./holehe")
         safe_input("  [Enter для продолжения...]")
         return
     
@@ -2759,13 +2757,15 @@ def search_email_ghunt(email):
     # Проверка и установка GHunt
     installed = check_tool("ghunt")
     if not installed:
-        print_info("  Устанавливаем GHunt...\n")
-        run_command(f'{sys.executable} -m pip install ghunt')
+        print_info("  Устанавливаем GHunt через git...\n")
+        run_command('git clone https://github.com/mxrch/GHunt.git')
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./GHunt')
         installed = check_tool("ghunt")
     
     if not installed:
         print_error("  GHunt не установлен. Установите вручную:")
-        print_info("  pip install ghunt")
+        print_info("  git clone https://github.com/mxrch/GHunt.git")
+        print_info("  pip install ./GHunt")
         safe_input("  [Enter для продолжения...]")
         return
     
@@ -2843,13 +2843,15 @@ def spiderfoot_search():
     # Проверка и установка Spiderfoot
     installed = check_tool("sf")
     if not installed:
-        print_info("  Устанавливаем Spiderfoot...\n")
-        run_command(f'{sys.executable} -m pip install spiderfoot')
+        print_info("  Устанавливаем Spiderfoot через git...\n")
+        run_command('git clone https://github.com/spiderfoot/spiderfoot.git')
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./spiderfoot')
         installed = check_tool("sf")
     
     if not installed:
         print_error("  Spiderfoot не установлен. Установите вручную:")
-        print_info("  pip install spiderfoot")
+        print_info("  git clone https://github.com/spiderfoot/spiderfoot.git")
+        print_info("  pip install ./spiderfoot")
         safe_input("  [Enter для продолжения...]")
         return
     
@@ -2922,13 +2924,15 @@ def blackbird_search():
     # Проверка и установка Blackbird
     installed = check_tool("blackbird")
     if not installed:
-        print_info("  Устанавливаем Blackbird...\n")
-        run_command(f'{sys.executable} -m pip install blackbird-osint')
+        print_info("  Устанавливаем Blackbird через git...\n")
+        run_command('git clone https://github.com/projectdiscovery/blackbird.git')
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./blackbird')
         installed = check_tool("blackbird")
     
     if not installed:
         print_error("  Blackbird не установлен. Установите вручную:")
-        print_info("  pip install blackbird-osint")
+        print_info("  git clone https://github.com/projectdiscovery/blackbird.git")
+        print_info("  pip install ./blackbird")
         safe_input("  [Enter для продолжения...]")
         return
     

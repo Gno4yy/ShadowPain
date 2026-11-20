@@ -185,22 +185,20 @@ def download_wireshark():
 
 
 def pip_portable():
-    """Установка Python-пакетов в пользовательскую директорию"""
-    print_info("Установка Python-пакетов в portable-режиме...\n")
+    """Установка Python-пакетов в пользовательскую директорию через git"""
+    print_info("Установка Python-пакетов в portable-режиме через git...\n")
     print_info("Пакеты установятся в папку portable/ без прав админа.\n")
     
-    packages = ["requests", "PySocks", "sherlock-project"]
+    # Устанавливаем sherlock через git
+    print_info("Устанавливаем Sherlock через git...")
+    run_command('git clone https://github.com/sherlock-project/sherlock.git portable/sherlock')
+    cmd = f'pip install --break-system-packages --target portable/lib portable/sherlock'
+    stdout, stderr, rc = run_command(cmd)
     
-    for pkg in packages:
-        print_info(f"Установка {pkg}...")
-        
-        cmd = f'pip install --user --target portable/lib "{pkg}"'
-        stdout, stderr, rc = run_command(cmd)
-        
-        if rc == 0:
-            print_success(f"  {pkg} установлен")
-        else:
-            print_error(f"  {pkg} — ошибка: {stderr[:100]}")
+    if rc == 0:
+        print_success("  Sherlock установлен")
+    else:
+        print_error(f"  Sherlock — ошибка: {stderr[:100]}")
     
     # Создаём portable-скрипт запуска
     launcher = '''@echo off
