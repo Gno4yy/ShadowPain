@@ -6,6 +6,33 @@ import platform
 # Корень проекта — для абсолютных путей
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Загружаем баннер из файла или используем дефолтный
+_DEFAULT_BANNER = r"""
+                                      
+  __     ___     ___\ \ \ \    __  __   __  __   __  __    
+ /'_ `\ /' _ `\  / __`\ \ \ \_ /\ \/\ \ /\ \/\ \ /\ \/\ \   
+/\ \L\ \/\ \/\ \/\ \L\ \ \__ ,__\ \ \_\ \\ \ \_\ \\ \ \_\ \  
+\ \____ \ \_\ \_\ \____/\/_/\_\_/\/`____ \\/`____ \\/`____ \ 
+ \/___L\ \/_/\/_/\/___/    \/_/   `/___/> \`/___/> \`/___/> \
+    /\____/                           /\___/   /\___/   /\___/
+    \_/__/                            \/__/    \/__/    \/__/
+    
+"""
+
+def _load_banner():
+    """Загружает баннер из файла или возвращает дефолтный"""
+    from config.settings import BANNER_FILE
+    banner_path = os.path.join(PROJECT_ROOT, BANNER_FILE)
+    if os.path.exists(banner_path):
+        try:
+            with open(banner_path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:
+                    return "\n" + content + "\n"
+        except Exception:
+            pass
+    return _DEFAULT_BANNER
+
 
 def clear_screen():
     """Очистка экрана"""
@@ -14,18 +41,7 @@ def clear_screen():
 
 def print_banner():
     """Вывод ASCII-баннера"""
-    banner = r"""
-                                     
-  __     ___     ___\ \ \ \    __  __   __  __   __  __    
- /'_ `\ /' _ `\  / __`\ \ \ \_ /\ \/\ \ /\ \/\ \ /\ \/\ \   
-/\ \L\ \/\ \/\ \/\ \L\ \ \__ ,__\ \ \_\ \\ \ \_\ \\ \ \_\ \  
-\ \____ \ \_\ \_\ \____/\/_/\_\_/\/`____ \\/`____ \\/`____ \ 
- \/___L\ \/_/\/_/\/___/    \/_/   `/___/> \`/___/> \`/___/> \
-   /\____/                           /\___/   /\___/   /\___/
-   \_/__/                            \/__/    \/__/    \/__/
-   
-"""
-    print(banner)
+    print(_load_banner())
 
 
 def print_success(msg):
@@ -111,3 +127,77 @@ def safe_input(prompt=""):
     except (EOFError, KeyboardInterrupt):
         print()
         return None
+
+
+def change_banner():
+    """Изменение баннера ShadowPain"""
+    from config.settings import BANNER_FILE
+    
+    banner_path = os.path.join(PROJECT_ROOT, BANNER_FILE)
+    
+    # Создаём папку data если нет
+    os.makedirs(os.path.dirname(banner_path), exist_ok=True)
+    
+    print_info("Доступные варианты:\n")
+    print("  [1]  Ввести свой баннер (ввод с клавиатуры)")
+    print("  [2]  Загрузить из файла")
+    print("  [3]  Сбросить на дефолтный")
+    print("  [0]  Назад\n")
+    
+    choice = input("  >>> Ваш выбор: ").strip()
+    
+    if choice == "0":
+        return
+    
+    if choice == "1":
+        print_info("Введите баннер (завершите пустой строкой):\n")
+        lines = []
+        while True:
+            try:
+                line = input()
+                if line == "" and lines:
+                    break
+                lines.append(line)
+            except (EOFError, KeyboardInterrupt):
+                break
+        
+        banner_text = "\n".join(lines)
+        if banner_text.strip():
+            with open(banner_path, "w", encoding="utf-8") as f:
+                f.write(banner_text + "\n")
+            print_success("  Баннер сохранён!")
+        else:
+            print_warning("  Баннер пустой — не сохранён.")
+    
+    elif choice == "2":
+        filepath = input("  Путь к файлу с баннером: ").strip()
+        if not filepath:
+            print_error("  Путь не указан!")
+            return
+        
+        if not os.path.exists(filepath):
+            print_error(f"  Файл не найден: {filepath}")
+            return
+        
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+            if not content:
+                print_warning("  Файл пустой.")
+                return
+            
+            with open(banner_path, "w", encoding="utf-8") as f:
+                f.write(content + "\n")
+            print_success("  Баннер загружен из файла!")
+        except Exception as e:
+            print_error(f"  Ошибка чтения файла: {e}")
+    
+    elif choice == "3":
+        if os.path.exists(banner_path):
+            os.remove(banner_path)
+            print_success("  Баннер сброшен на дефолтный!")
+        else:
+            print_info("  Баннер уже дефолтный.")
+    
+    else:
+        print_error("  Неверный выбор.")

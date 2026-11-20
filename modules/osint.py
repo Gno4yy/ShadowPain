@@ -1741,9 +1741,14 @@ def run_osint_module():
         print_banner()
         print("\n  === OSINT: Расширенный поиск ===\n")
         print("  [1]  Поиск по никнейму (соцсети)")
+        print("     [1]  Быстрый поиск (150+ сайтов)")
+        print("     [2]  Spiderfoot — 200+ модулей")
+        print("     [3]  Blackbird — 150+ платформ")
         print("  [2]  Поиск по номеру телефона")
         print("  [3]  Поиск по ФИО и дате рождения")
         print("  [4]  Поиск по email")
+        print("     [1]  Holehe — проверка регистрации на сайтах")
+        print("     [2]  GHunt — сбор информации из Google")
         print("  [5]  Поиск по IP-адресу")
         print("  [6]  Google Dorking — продвинутый поиск в Google")
         print("  [0]  Назад\n")
@@ -1751,13 +1756,36 @@ def run_osint_module():
         choice = input("  >>> Ваш выбор: ").strip()
         
         if choice == "1":
-            username = input("\n  Введите никнейм: ").strip()
-            if not username:
-                print_error("Никнейм не может быть пустым!")
-                if safe_input("  [Enter для продолжения...]") is None:
-                    sys.exit(0)
-                continue
-            search_auto(username)
+            # Подменю поиска по никнейму
+            while True:
+                clear_screen()
+                print_banner()
+                print("\n  === Поиск по никнейму ===\n")
+                print("  [1]  Быстрый поиск (150+ сайтов)")
+                print("  [2]  Spiderfoot — 200+ модулей")
+                print("  [3]  Blackbird — 150+ платформ")
+                print("  [0]  Назад\n")
+                
+                nick_choice = input("  >>> Ваш выбор: ").strip()
+                
+                if nick_choice == "0":
+                    break
+                elif nick_choice == "1":
+                    username = input("\n  Введите никнейм: ").strip()
+                    if not username:
+                        print_error("Никнейм не может быть пустым!")
+                        if safe_input("  [Enter для продолжения...]") is None:
+                            sys.exit(0)
+                        continue
+                    search_auto(username)
+                elif nick_choice == "2":
+                    spiderfoot_search()
+                elif nick_choice == "3":
+                    blackbird_search()
+                else:
+                    print_error("Неверный выбор.")
+                    if safe_input("  [Enter для продолжения...]") is None:
+                        sys.exit(0)
         elif choice == "2":
             phone = input("\n  Введите номер телефона (например: +79991234567): ").strip()
             if not phone:
@@ -1769,14 +1797,46 @@ def run_osint_module():
         elif choice == "3":
             _search_by_name()
         elif choice == "4":
-            email = input("\n  Введите email: ").strip()
-            if not email:
-                print_error("Email не может быть пустым!")
+            # Подменю поиска по email
+            while True:
+                clear_screen()
+                print_banner()
+                print("\n  === Поиск по email ===\n")
+                print("  [1]  Holehe — проверка регистрации на 120+ сайтах")
+                print("  [2]  GHunt — сбор информации из Google")
+                print("  [0]  Назад\n")
+                
+                email_choice = input("  >>> Ваш выбор: ").strip()
+                
+                if email_choice == "0":
+                    break
+                elif email_choice == "1":
+                    email = input("\n  Введите email: ").strip()
+                    if not email:
+                        print_error("Email не может быть пустым!")
+                        if safe_input("  [Enter для продолжения...]") is None:
+                            sys.exit(0)
+                        continue
+                    search_email_holehe(email)
+                elif email_choice == "2":
+                    email = input("\n  Введите email (Google): ").strip()
+                    if not email:
+                        print_error("Email не может быть пустым!")
+                        if safe_input("  [Enter для продолжения...]") is None:
+                            sys.exit(0)
+                        continue
+                    search_email_ghunt(email)
+                else:
+                    print_error("Неверный выбор.")
+                    if safe_input("  [Enter для продолжения...]") is None:
+                        sys.exit(0)
+        elif choice == "5":
+            ip = input("\n  Введите IP-адрес: ").strip()
+            if not ip:
+                print_error("IP-адрес не может быть пустым!")
                 if safe_input("  [Enter для продолжения...]") is None:
                     sys.exit(0)
                 continue
-            search_by_email(email)
-        elif choice == "5":
             _search_by_ip(ip)
         elif choice == "6":
             google_dork_search()
@@ -2626,5 +2686,287 @@ def search_by_phone(phone):
     if safe_input("\n  [Enter для продолжения...]") is None:
         sys.exit(0)
     logger.info(f"Phone search completed for: {phone}, found: {found}, errors: {errors}")
+
+
+# ============================================================
+# Holehe — Проверка email на регистрацию в сервисах
+# ============================================================
+
+def search_email_holehe(email):
+    """Поиск через Holehe — проверка email на регистрацию в 120+ сервисах"""
+    from utils.helpers import clear_screen, print_banner, print_info, print_success, print_warning, print_error, save_output, safe_input
+    
+    clear_screen()
+    print_banner()
+    print(f"\n  === Holehe: Проверка email ===\n")
+    print_info(f"  Email: {email}\n")
+    print_info("  Устанавливаем зависимости...\n")
+    
+    # Проверка и установка Holehe
+    installed = check_tool("holehe")
+    if not installed:
+        print_info("  Устанавливаем Holehe...\n")
+        run_command(f'{sys.executable} -m pip install holehe')
+        installed = check_tool("holehe")
+    
+    if not installed:
+        print_error("  Holehe не установлен. Установите вручную:")
+        print_info("  pip install holehe")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    print_success("  Holehe установлен!\n")
+    print_info("  Проверка email на регистрацию в сервисах...\n")
+    print_warning("  ⚠  Это может занять несколько минут.\n")
+    
+    try:
+        # Запускаем Holehe
+        result = subprocess.run(
+            [sys.executable, "-m", "holehe", email],
+            capture_output=True,
+            text=True,
+            timeout=180
+        )
+        
+        output = result.stdout + result.stderr
+        
+        if output.strip():
+            print_success("  Результаты Holehe:\n")
+            print(output)
+            
+            # Сохраняем результат
+            filepath = save_output(f"holehe_{sanitize_filename(email)}.txt", output)
+            print_info(f"  Результат сохранён в: {filepath}")
+        else:
+            print_warning("  Аккаунты не найдены.")
+            
+    except subprocess.TimeoutExpired:
+        print_error("  Превышено время ожидания (180 сек).")
+    except Exception as e:
+        print_error(f"  Ошибка: {e}")
+    
+    safe_input("\n  [Enter для продолжения...]")
+
+
+# ============================================================
+# GHunt — Сбор информации из Google
+# ============================================================
+
+def search_email_ghunt(email):
+    """Поиск через GHunt — сбор информации из Google (аккаунт, Maps, Photos)"""
+    from utils.helpers import clear_screen, print_banner, print_info, print_success, print_warning, print_error, save_output, safe_input
+    
+    clear_screen()
+    print_banner()
+    print(f"\n  === GHunt: Сбор информации из Google ===\n")
+    print_info(f"  Email: {email}\n")
+    
+    # Проверка и установка GHunt
+    installed = check_tool("ghunt")
+    if not installed:
+        print_info("  Устанавливаем GHunt...\n")
+        run_command(f'{sys.executable} -m pip install ghunt')
+        installed = check_tool("ghunt")
+    
+    if not installed:
+        print_error("  GHunt не установлен. Установите вручную:")
+        print_info("  pip install ghunt")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    print_success("  GHunt установлен!\n")
+    print_info("  Сбор информации из Google...\n")
+    print_warning("  ⚠  Требуется авторизация Google.\n")
+    
+    try:
+        # Запускаем GHunt
+        result = subprocess.run(
+            [sys.executable, "-m", "ghunt", "email", email],
+            capture_output=True,
+            text=True,
+            timeout=180
+        )
+        
+        output = result.stdout + result.stderr
+        
+        if output.strip():
+            print_success("  Результаты GHunt:\n")
+            print(output)
+            
+            # Сохраняем результат
+            filepath = save_output(f"ghunt_{sanitize_filename(email)}.txt", output)
+            print_info(f"  Результат сохранён в: {filepath}")
+        else:
+            print_warning("  Результаты не найдены.")
+            
+    except subprocess.TimeoutExpired:
+        print_error("  Превышено время ожидания (180 сек).")
+    except Exception as e:
+        print_error(f"  Ошибка: {e}")
+    
+    safe_input("\n  [Enter для продолжения...]")
+
+
+# ============================================================
+# Spiderfoot — Автоматизированный OSINT-сканер
+# ============================================================
+
+def spiderfoot_search():
+    """Поиск через Spiderfoot — автоматизированный OSINT-сканер"""
+    from utils.helpers import clear_screen, print_banner, print_info, print_success, print_warning, print_error, save_output, safe_input
+    
+    clear_screen()
+    print_banner()
+    print("\n  === Spiderfoot: Автоматизированный OSINT ===\n")
+    print_info("  Spiderfoot — мощный сканер OSINT, проверяющий")
+    print_info("  данные через 200+ модулей (email, IP, домен, никнейм)\n")
+    
+    target_type = input("  Тип цели: [1] Никнейм  [2] Email  [3] IP  [4] Домен  >>> ").strip()
+    
+    targets = {
+        "1": ("username", "Введите никнейм: "),
+        "2": ("email", "Введите email: "),
+        "3": ("ip", "Введите IP-адрес: "),
+        "4": ("domain", "Введите домен: "),
+    }
+    
+    if target_type not in targets:
+        print_error("Неверный выбор.")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    target_name, prompt = targets[target_type]
+    target_value = input(f"\n  {prompt}").strip()
+    
+    if not target_value:
+        print_error("Значение не может быть пустым!")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    print_info(f"\n  Цель: {target_value}\n")
+    
+    # Проверка и установка Spiderfoot
+    installed = check_tool("sf")
+    if not installed:
+        print_info("  Устанавливаем Spiderfoot...\n")
+        run_command(f'{sys.executable} -m pip install spiderfoot')
+        installed = check_tool("sf")
+    
+    if not installed:
+        print_error("  Spiderfoot не установлен. Установите вручную:")
+        print_info("  pip install spiderfoot")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    print_success("  Spiderfoot установлен!\n")
+    print_info("  Запуск сканирования...\n")
+    print_warning("  ⚠  Это может занять 10-30 минут.\n")
+    
+    try:
+        # Запускаем Spiderfoot в headless режиме
+        # -m: headless mode, -s: target, -t: scan types
+        cmd = f'{sys.executable} -m spiderfoot -m {target_name} -s "{target_value}"'
+        
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=1800  # 30 минут таймаут
+        )
+        
+        output = result.stdout + result.stderr
+        
+        if output.strip():
+            # Показываем только последние 100 строк чтобы не перегружать
+            lines = output.split('\n')
+            if len(lines) > 100:
+                print_info("  Показываем последние 100 строк из...\n")
+                print('\n'.join(lines[-100:]))
+            else:
+                print_success("  Результаты Spiderfoot:\n")
+                print(output)
+            
+            # Сохраняем полный результат
+            filepath = save_output(f"spiderfoot_{target_name}_{sanitize_filename(target_value)}.txt", output)
+            print_info(f"  Полный результат сохранён в: {filepath}")
+        else:
+            print_warning("  Результаты не найдены.")
+            
+    except subprocess.TimeoutExpired:
+        print_error("  Превышено время ожидания (30 минут).")
+        print_info("  Результат сохранён в файл.")
+    except Exception as e:
+        print_error(f"  Ошибка: {e}")
+    
+    safe_input("\n  [Enter для продолжения...]")
+
+
+# ============================================================
+# Blackbird — Быстрый поиск по никнейму
+# ============================================================
+
+def blackbird_search():
+    """Поиск через Blackbird — быстрый поиск никнейма в 150+ соцсетях"""
+    from utils.helpers import clear_screen, print_banner, print_info, print_success, print_warning, print_error, save_output, safe_input
+    
+    clear_screen()
+    print_banner()
+    print("\n  === Blackbird: Поиск по никнейму ===\n")
+    print_info("  Blackbird — быстрый поиск никнейма через")
+    print_info("  150+ платформ с поддержкой Tor\n")
+    
+    username = input("  Введите никнейм: ").strip()
+    if not username:
+        print_error("Никнейм не может быть пустым!")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    print_info(f"\n  Поиск: {username}\n")
+    
+    # Проверка и установка Blackbird
+    installed = check_tool("blackbird")
+    if not installed:
+        print_info("  Устанавливаем Blackbird...\n")
+        run_command(f'{sys.executable} -m pip install blackbird-osint')
+        installed = check_tool("blackbird")
+    
+    if not installed:
+        print_error("  Blackbird не установлен. Установите вручную:")
+        print_info("  pip install blackbird-osint")
+        safe_input("  [Enter для продолжения...]")
+        return
+    
+    print_success("  Blackbird установлен!\n")
+    print_info("  Запуск поиска...\n")
+    print_warning("  ⚠  Это может занять несколько минут.\n")
+    
+    try:
+        # Запускаем Blackbird
+        result = subprocess.run(
+            ["blackbird", username],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 минут таймаут
+        )
+        
+        output = result.stdout + result.stderr
+        
+        if output.strip():
+            print_success("  Результаты Blackbird:\n")
+            print(output)
+            
+            # Сохраняем результат
+            filepath = save_output(f"blackbird_{sanitize_filename(username)}.txt", output)
+            print_info(f"  Результат сохранён в: {filepath}")
+        else:
+            print_warning("  Аккаунты не найдены.")
+            
+    except subprocess.TimeoutExpired:
+        print_error("  Превышено время ожидания (5 минут).")
+    except Exception as e:
+        print_error(f"  Ошибка: {e}")
+    
+    safe_input("\n  [Enter для продолжения...]")
 
 

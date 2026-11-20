@@ -2,6 +2,9 @@ PROJECT_NAME = "ShadowPain Dashboard"
 VERSION = "1.0.0"
 OUTPUT_DIR = "output"
 
+# Настройки баннера
+BANNER_FILE = "data/banner.txt"
+
 # Настройки Sherlock
 SHERLOCK_SITES = "all"  # или конкретные: "github","twitter","instagram"
 

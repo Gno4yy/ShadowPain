@@ -230,34 +230,15 @@ def _run_linux(cmd):
 def _find_monitor_interfaces():
     """Ищет monitor-интерфейсы через iwconfig"""
     stdout, _, _ = _run_linux("iwconfig 2>/dev/null")
-    monitors = []
     if not stdout:
-        return monitors
+        return []
 
-    current_iface = None
+    monitors = []
+    # Каждая строка интерфейса начинается с имени (без отступа) и содержит "IEEE"
     for line in stdout.splitlines():
-        # Строка интерфейса: "wlan0mon  IEEE 802.11  Mode:Monitor  ..."
-        if line and (line[0].isalnum() or line[0] == 'w') and "IEEE" in line:
+        # Проверяем: строка не отступлена, содержит IEEE и Mode:Monitor
+        if line and not line[0].isspace() and "IEEE" in line and "Mode:Monitor" in line:
             m = re.match(r'^(\S+)', line)
-            if m:
-                current_iface = m.group(1)
-        # Проверяем Mode:Monitor
-        if current_iface and "Mode:Monitor" in line or "Mode:Monitor" in line:
-            # Проверяем, есть ли Mode:Monitor в текущей строке или в строке интерфейса
-            pass
-        if current_iface and "Mode:Monitor" in line:
-            monitors.append(current_iface)
-            current_iface = None
-        # Иногда Mode:Monitor в той же строке что и имя интерфейса
-        if current_iface and "Mode:Monitor" in line:
-            if current_iface not in monitors:
-                monitors.append(current_iface)
-            current_iface = None
-
-    # Альтернативный поиск: ищем "Mode:Monitor" в строке с именем
-    if not monitors:
-        for line in stdout.splitlines():
-            m = re.match(r'^(\S+mon\S*)\s+.*Mode:Monitor', line)
             if m:
                 monitors.append(m.group(1))
 
@@ -265,35 +246,38 @@ def _find_monitor_interfaces():
 
 
 def _find_wifi_interfaces():
-    """Ищет обычные WiFi-интерфейсы через iwconfig"""
+    """Ищет обычные WiFi-интерфейсы через iwconfig (не в monitor mode)"""
     stdout, _, _ = _run_linux("iwconfig 2>/dev/null")
     ifaces = []
     if not stdout:
         return ifaces
 
-    current_iface = None
     for line in stdout.splitlines():
-        if line and (line[0].isalnum() or line[0] == 'w'):
+        # Строка интерфейса: не отступлена, содержит IEEE, но НЕ Mode:Monitor
+        if line and not line[0].isspace() and "IEEE" in line and "Mode:Monitor" not in line:
             m = re.match(r'^(\S+)', line)
             if m:
-                current_iface = m.group(1)
-        if current_iface and ("IEEE 802.11" in line or "ESS:" in line or "Mode:Management" in line):
-            if "Mode:Monitor" not in line:
-                ifaces.append(current_iface)
-            current_iface = None
+                ifaces.append(m.group(1))
 
     return ifaces
 
 
 def _enable_monitor_mode(iface):
     """Включает monitor mode через airmon-ng и возвращает имя monitor-интерфейса"""
+    # Сначала проверяем, не включён ли уже monitor mode
+    stdout, _, _ = _run_linux(f"iwconfig {iface} 2>/dev/null")
+    if stdout and "Mode:Monitor" in stdout:
+        print_info(f"  Monitor mode уже включён на {iface}")
+        return iface
+
     print_info(f"  Включаем monitor mode на {iface}...")
     _run_linux(f"airmon-ng start {iface}")
 
-    # Проверяем, какой интерфейс создался
+    # Ждём немного
     import time
     time.sleep(2)
 
+    # Проверяем, какой интерфейс появился
     monitors = _find_monitor_interfaces()
     if monitors:
         return monitors[0]

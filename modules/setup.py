@@ -16,7 +16,7 @@ if _project_root not in sys.path:
 
 from utils.helpers import (
     clear_screen, print_banner, print_success, print_error,
-    print_info, print_warning, run_command, check_tool, safe_input
+    print_info, print_warning, run_command, check_tool, safe_input, change_banner
 )
 from utils.logger import setup_logger
 
@@ -35,6 +35,7 @@ def run_setup_module():
         print("  [4]  Настроить WSL (для WiFi)")
         print("  [5]  Настроить portable-режим")
         print("  [6]  Сгенерировать скрипт запуска")
+        print("  [7]  Изменить баннер")
         print("  [0]  Назад\n")
         
         choice = input("  >>> Ваш выбор: ").strip()
@@ -51,6 +52,8 @@ def run_setup_module():
             setup_portable()
         elif choice == "6":
             generate_launcher()
+        elif choice == "7":
+            change_banner()
         elif choice == "0":
             break
         else:

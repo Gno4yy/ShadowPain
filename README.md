@@ -7,8 +7,8 @@
 
 | № | Модуль | Описание |
 |---|--------|----------|
-| 1 | **OSINT** | Поиск по никнейму — **297 сайтов** / по email — **147 сайтов** / по телефону — **93 сайта** (соцсети, форумы, игры, крипто, блоги, маркетплейсы) |
-| 2 | **WiFi** | Кроссплатформенный аудит: `netsh wlan` (Windows) / `airodump-ng` (Linux) |
+| 1 | **OSINT** | Поиск по никнейму — **297+ сайтов** (Quick, Spiderfoot, Blackbird) / по email — **Holehe + GHunt** / по телефону / по ФИО / по IP / Google Dorking (15 типов дорков) |
+| 2 | **WiFi** | Кроссплатформенный аудит: `netsh wlan` (Windows) / `airodump-ng` + `wifite` (Linux) |
 | 3 | **Hash** | Взлом / проверка хешей через Hashcat (словарь, brute-force, автоопределение режима) |
 | 4 | **Tor** | Проверка IP, ротация идентичности, настройка SOCKS-прокси |
 | 5 | **Email** | Анонимная почта Mail.tm — создание, входящие, чтение, SMTP-отправка |
@@ -49,7 +49,16 @@ pip install requests PySocks prettytable tldextract sherlock-project sqlmap
 | `tor` | Анонимность | Скачать с [torproject.org](https://www.torproject.org/download/) |
 | `airodump-ng` | WiFi-аудит Linux | `sudo apt install -y aircrack-ng` (только Linux) |
 
-**4. Запуск**
+**4. OSINT-инструменты (опционально)**
+
+| Инструмент | Для чего | Установка |
+|------------|----------|-----------|
+| `holehe` | Проверка email на 120+ сайтах | `pip install holehe` |
+| `ghunt` | Сбор данных из Google | `pip install ghunt` |
+| `spiderfoot` | 200+ модулей OSINT | `pip install spiderfoot` |
+| `blackbird` | 150+ платформ по нику | `pip install blackbird-osint` |
+
+**5. Запуск**
 
 ```powershell
 python main.py
@@ -95,7 +104,13 @@ pip3 install requests PySocks prettytable tldextract sherlock-project sqlmap
 | `airodump-ng` | WiFi-аудит (monitor mode) | `sudo apt install -y aircrack-ng` |
 | `wifite` | Авто-аудит WiFi | `sudo apt install -y wifite` |
 
-**4. Запуск**
+**4. OSINT-инструменты (опционально)**
+
+```bash
+pip3 install holehe ghunt spiderfoot blackbird-osint
+```
+
+**5. Запуск**
 
 ```bash
 python3 main.py
@@ -120,14 +135,14 @@ python3 main.py
 
 #### На Linux
 
-Модуль использует **aircrack-ng** и **wifite** — полный набор для WiFi-аудита:
+Модуль использует **airodump-ng** и **wifite** — полный набор для WiFi-аудита:
 
 | Функция | Команда | Что делает |
 |---------|---------|------------|
 | Сканирование | `airodump-ng` | Реальное время, monitor mode, рукопожатия |
-| Информация | `iwconfig` / `ip link` | Текущее подключение и интерфейсы |
+| Информация | `iwconfig` | Текущее подключение и интерфейсы |
 | Сохранённые | `nmcli device wifi list` | Сети через NetworkManager |
-| Авто-аудит | `wifite` | Автоматический взлом WEP/WPA/WPA2 |
+| Авто-аудит | `wifite --kill` | Автоматический взлом WEP/WPA/WPA2 |
 | Ручной взлом | `aircrack-ng` | Захват и взлом рукопожатий |
 
 > **Для monitor mode** нужен WiFi-адаптер с поддержкой. Включите: `sudo airmon-ng start wlan0`
@@ -148,11 +163,11 @@ python3 main.py
 ├── main.py                     # Главный файл, CLI-меню
 ├── config/
 │   ├── __init__.py
-│   └── settings.py             # Настройки проекта
+│   └── settings.py             # Настройки проекта + путь к баннеру
 ├── modules/
 │   ├── __init__.py
-│   ├── osint.py                # 297 + 147 + 93 сайтов, Sherlock + quick_search
-│   ├── wifi.py                 # netsh (Win) / aircrack-ng (Linux)
+│   ├── osint.py                # Quick (297+), Spiderfoot, Blackbird, Holehe, GHunt, Dorking
+│   ├── wifi.py                 # netsh (Win) / aircrack-ng + wifite (Linux)
 │   ├── hash.py                 # Hashcat (словарь, brute-force)
 │   ├── tor.py                  # IP, ротация, прокси
 │   ├── mail.py                 # Mail.tm API + SMTP-отправка
@@ -162,12 +177,13 @@ python3 main.py
 │   ├── portable.py             # Portable-режим
 │   ├── output_manager.py       # Управление файлами результатов
 │   ├── search_name.py          # Поиск по ФИО
-│   ├── search_ip.py            # Поиск по IP
-│   └── search_id.py            # Поиск по уникальному ID
+│   └── search_ip.py            # Поиск по IP
 ├── utils/
 │   ├── __init__.py
 │   ├── logger.py               # Логирование в output/
-│   └── helpers.py              # Баннер, safe_input, save_output
+│   └── helpers.py              # Баннер, safe_input, save_output, change_banner
+├── data/                       # Данные (баннер и др.)
+│   └── banner.txt              # Кастомный баннер (опционально)
 ├── output/                     # Папка для результатов
 └── requirements.txt
 ```
@@ -181,6 +197,8 @@ python3 main.py
 - **Fallback OSINT** — если Sherlock не установлен, автоматически quick_search через asyncio + aiohttp
 - **SMTP-отправка** — Gmail, Outlook, Yandex, Mail.ru, ProtonMail + свой SMTP
 - **Кроссплатформенный WiFi** — netsh на Windows, aircrack-ng на Linux
+- **Кодировка Windows** — корректная обработка OEM-вывода netsh (cp866)
+- **Подменю** — вложенные меню для поиска по нику (Quick/Spiderfoot/Blackbird) и email (Holehe/GHunt)
 
 ## ⚠️ Дисклеймер
 
