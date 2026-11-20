@@ -114,7 +114,7 @@ pip3 install holehe ghunt spiderfoot blackbird-osint
 
 ```bash
 python3 main.py
-# или через Setup → [7] Setup → [1] Автоустановка всего
+
 ```
 
 ---
