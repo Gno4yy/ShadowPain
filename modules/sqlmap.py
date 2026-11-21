@@ -123,8 +123,10 @@ def check_sqlmap():
     
     confirm = input("  Установить через git? (y/n): ").strip().lower()
     if confirm == "y":
-        run_command('git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev')
-        print_success(" sqlmap установлен!")
+        stdout, stderr, rc = run_command('git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev')
+        if rc == 0:
+            print_success(" sqlmap установлен!")
+            return True
         else:
             print_error(f" Ошибка: {stderr}")
     return False
