@@ -85,7 +85,19 @@ def check_tool(name):
     if shutil.which(name) is not None:
         return True
     
-    # 2. Проверка в Python Scripts/Scripts
+    # 2. Проверка в portable/
+    portable_exe = os.path.join(PROJECT_ROOT, "portable", name)
+    if os.path.isfile(portable_exe):
+        return True
+    portable_exe_py = os.path.join(PROJECT_ROOT, "portable", name, f"{name}.py")
+    if os.path.isfile(portable_exe_py):
+        return True
+    # Windows portable
+    portable_exe_win = os.path.join(PROJECT_ROOT, "portable", name, f"{name}.exe")
+    if os.path.isfile(portable_exe_win):
+        return True
+    
+    # 3. Проверка в Python Scripts/Scripts
     python_dir = os.path.dirname(sys.executable)
     for subdir in ["Scripts", "bin"]:
         script_path = os.path.join(python_dir, subdir, name)
@@ -95,7 +107,7 @@ def check_tool(name):
         if os.path.isfile(f"{script_path}.exe"):
             return True
     
-    # 3. Проверка в site-packages
+    # 4. Проверка в site-packages
     import glob
     site_packages_pattern = os.path.join(python_dir, "lib", "python*", "site-packages")
     matched_sp = glob.glob(site_packages_pattern)
@@ -108,6 +120,33 @@ def check_tool(name):
                 return True
     
     return False
+
+
+def get_portable_tool(name):
+    """Получить путь к portable-версии утилиты или None"""
+    portable_dir = os.path.join(PROJECT_ROOT, "portable")
+    
+    # 1. Прямой файл в portable/
+    direct = os.path.join(portable_dir, name)
+    if os.path.isfile(direct):
+        return direct
+    
+    # 2. Файл в portable/name/name.py или portable/name/name.exe
+    subdir = os.path.join(portable_dir, name)
+    if os.path.isdir(subdir):
+        py_file = os.path.join(subdir, f"{name}.py")
+        exe_file = os.path.join(subdir, f"{name}.exe")
+        if os.path.isfile(py_file):
+            return py_file
+        if os.path.isfile(exe_file):
+            return exe_file
+        # Ищем любой исполняемый файл
+        for root, dirs, files in os.walk(subdir):
+            for f in files:
+                if f.endswith(('.exe', '.py', '.sh')):
+                    return os.path.join(root, f)
+    
+    return None
 
 
 def save_output(filename, content):

@@ -123,19 +123,26 @@ def _get_sqlmap_cmd():
     """Получить команду запуска sqlmap (с полным путём)"""
     import shutil
     
-    # 1. В PATH
+    # 1. Portable-режим
+    portable_sqlmap = get_portable_tool("sqlmap")
+    if portable_sqlmap:
+        if portable_sqlmap.endswith(".py"):
+            return f'{sys.executable} "{portable_sqlmap}"'
+        return portable_sqlmap
+    
+    # 2. В PATH
     found = shutil.which("sqlmap")
     if found:
         return found
     
-    # 2. Python Scripts — ищем sqlmap.exe
+    # 3. Python Scripts — ищем sqlmap.exe
     python_dir = os.path.dirname(sys.executable)
     for subdir in ["Scripts", "bin"]:
         exe = os.path.join(python_dir, subdir, "sqlmap.exe")
         if os.path.exists(exe):
             return exe
     
-    # 3. site-packages — ищем sqlmap.py
+    # 4. site-packages — ищем sqlmap.py
     site_packages = os.path.join(python_dir, "lib", "python*", "site-packages")
     import glob
     matched = glob.glob(site_packages)

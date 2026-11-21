@@ -206,7 +206,11 @@ def _parse_netsh_output(output):
 # ========================
 
 def _check_linux_tool(name):
-    """Проверка наличия утилиты в Linux"""
+    """Проверка наличия утилиты в Linux или portable"""
+    # Сначала portable
+    portable_exe = get_portable_tool(name)
+    if portable_exe:
+        return True
     return shutil.which(name) is not None
 
 
@@ -611,7 +615,11 @@ def run_wifite():
         safe_input("  [Enter для продолжения...]")
         return
 
-    if not _check_linux_tool("wifite"):
+    # Portable-режим
+    portable_wifite = get_portable_tool("wifite")
+    wifite_cmd = portable_wifite if portable_wifite else "wifite"
+    
+    if wifite_cmd == "wifite" and not _check_linux_tool("wifite"):
         print_error(" wifite не установлен.")
         print_info(" Установите: sudo apt install -y wifite")
         safe_input("  [Enter для продолжения...]")
@@ -621,7 +629,7 @@ def run_wifite():
     print_warning("  ⚠  Используйте только на своих сетях или с разрешения владельца!\n")
 
     try:
-        subprocess.run(["wifite", "--kill"], check=False)
+        subprocess.run([wifite_cmd, "--kill"], check=False)
     except KeyboardInterrupt:
         print_warning("\n  Wifite остановлен.")
     except Exception as e:

@@ -1847,38 +1847,68 @@ def search_auto(username):
     print_info(f"Поиск аккаунтов для: {username}")
     print_info("Попытка установить Sherlock...\n")
     
-    installed = False
+    # 0. Проверяем portable-режим
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sherlock_portable = os.path.join(project_root, "portable", "sherlock")
+    lib_portable = os.path.join(project_root, "portable", "lib")
     
-    # 1. Ставим зависимости через python -m pip
-    print_info("Устанавливаем зависимости...")
-    run_command(f'{sys.executable} -m pip install --break-system-packages requests colorama prettytable tldextract')
-    
-    # 2. Устанавливаем Sherlock через git
-    print_info("Устанавливаем Sherlock через git...")
-    stdout, stderr, rc = run_command('git clone https://github.com/sherlock-project/sherlock.git')
-    if rc == 0:
-        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./sherlock')
-    
-    if rc == 0 and check_tool("sherlock"):
-        installed = True
-        print_success("  Sherlock установлен!\n")
-    
-    # 3. Запускаем Sherlock
-    if installed:
-        print_info("Запускаем Sherlock...\n")
-        cmd = f'sherlock --print-all "{username}"'
+    if os.path.isdir(sherlock_portable) and os.path.isdir(lib_portable):
+        # Добавляем portable/lib в sys.path
+        if lib_portable not in sys.path:
+            sys.path.insert(0, lib_portable)
+        
+        # Устанавливаем зависимости Sherlock в portable
+        deps = ["requests", "colorama", "prettytable", "tldextract"]
+        for dep in deps:
+            run_command(f'{sys.executable} -m pip install --break-system-packages --target "{lib_portable}" {dep}')
+        
+        # Пробуем запустить Sherlock из portable
+        print_info("  Находим Sherlock в portable. Запускаем...\n")
+        main_py = os.path.join(sherlock_portable, "sherlock", "__main__.py")
+        if not os.path.exists(main_py):
+            main_py = os.path.join(sherlock_portable, "sherlock.py")
+        
+        cmd = f'{sys.executable} "{main_py}" --print-all "{username}"'
         stdout, stderr, returncode = run_command(cmd)
         output = stdout + stderr
         
-        if output.strip():
+        if returncode == 0 and output.strip():
+            print_success("  Sherlock (portable) запущен!\n")
             print_success("Результаты Sherlock:\n")
             print(output)
             filepath = save_output(f"osint_{sanitize_filename(username)}_sherlock.txt", output)
             print_info(f"Сохранено в: {filepath}")
             if safe_input("\n  [Enter для продолжения...]") is None:
                 sys.exit(0)
-            logger.info(f"OSINT search completed for: {username} (Sherlock)")
+            logger.info(f"OSINT search completed for: {username} (Sherlock portable)")
             return
+    else:
+        # 1. Ставим зависимости через python -m pip
+        print_info("Устанавливаем зависимости...")
+        run_command(f'{sys.executable} -m pip install --break-system-packages requests colorama prettytable tldextract')
+        
+        # 2. Устанавливаем Sherlock через git
+        print_info("Устанавливаем Sherlock через git...")
+        stdout, stderr, rc = run_command('git clone https://github.com/sherlock-project/sherlock.git')
+        if rc == 0:
+            stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./sherlock')
+        
+        if rc == 0 and check_tool("sherlock"):
+            print_success("  Sherlock установлен!\n")
+            print_info("Запускаем Sherlock...\n")
+            cmd = f'sherlock --print-all "{username}"'
+            stdout, stderr, returncode = run_command(cmd)
+            output = stdout + stderr
+            
+            if output.strip():
+                print_success("Результаты Sherlock:\n")
+                print(output)
+                filepath = save_output(f"osint_{sanitize_filename(username)}_sherlock.txt", output)
+                print_info(f"Сохранено в: {filepath}")
+                if safe_input("\n  [Enter для продолжения...]") is None:
+                    sys.exit(0)
+                logger.info(f"OSINT search completed for: {username} (Sherlock)")
+                return
     
     # 4. Sherlock не работает — автоматически переходим к быстрому поиску
     print_warning("  Sherlock недоступен. Переход к быстрому поиску...\n")
@@ -2693,8 +2723,11 @@ def search_email_holehe(email):
     print_info(f"  Email: {email}\n")
     print_info("  Устанавливаем зависимости...\n")
     
-    # Проверка и установка Holehe
-    installed = check_tool("holehe")
+    # Portable-режим
+    portable_holehe = get_portable_tool("holehe")
+    holehe_cmd = portable_holehe if portable_holehe else None
+    
+    installed = holehe_cmd is not None or check_tool("holehe")
     if not installed:
         print_info("  Устанавливаем Holehe через git...\n")
         run_command('git clone https://github.com/megadose/holehe.git')
@@ -2714,8 +2747,9 @@ def search_email_holehe(email):
     
     try:
         # Запускаем Holehe
+        cmd = [sys.executable, "-m", "holehe", email] if not holehe_cmd else [holehe_cmd, email]
         result = subprocess.run(
-            [sys.executable, "-m", "holehe", email],
+            cmd,
             capture_output=True,
             text=True,
             timeout=180
@@ -2754,8 +2788,11 @@ def search_email_ghunt(email):
     print(f"\n  === GHunt: Сбор информации из Google ===\n")
     print_info(f"  Email: {email}\n")
     
-    # Проверка и установка GHunt
-    installed = check_tool("ghunt")
+    # Portable-режим
+    portable_ghunt = get_portable_tool("ghunt")
+    ghunt_cmd = portable_ghunt if portable_ghunt else None
+    
+    installed = ghunt_cmd is not None or check_tool("ghunt")
     if not installed:
         print_info("  Устанавливаем GHunt через git...\n")
         run_command('git clone https://github.com/mxrch/GHunt.git')
@@ -2775,8 +2812,9 @@ def search_email_ghunt(email):
     
     try:
         # Запускаем GHunt
+        cmd = [sys.executable, "-m", "ghunt", "email", email] if not ghunt_cmd else [ghunt_cmd, "email", email]
         result = subprocess.run(
-            [sys.executable, "-m", "ghunt", "email", email],
+            cmd,
             capture_output=True,
             text=True,
             timeout=180
@@ -2840,8 +2878,12 @@ def spiderfoot_search():
     
     print_info(f"\n  Цель: {target_value}\n")
     
+    # Portable-режим
+    portable_sf = get_portable_tool("spiderfoot")
+    sf_cmd = portable_sf if portable_sf else None
+    
     # Проверка и установка Spiderfoot
-    installed = check_tool("sf")
+    installed = sf_cmd is not None or check_tool("sf")
     if not installed:
         print_info("  Устанавливаем Spiderfoot через git...\n")
         run_command('git clone https://github.com/smicallef/spiderfoot.git')
@@ -2861,8 +2903,10 @@ def spiderfoot_search():
     
     try:
         # Запускаем Spiderfoot в headless режиме
-        # -m: headless mode, -s: target, -t: scan types
-        cmd = f'{sys.executable} -m spiderfoot -m {target_name} -s "{target_value}"'
+        if sf_cmd:
+            cmd = f'"{sf_cmd}" -m {target_name} -s "{target_value}"'
+        else:
+            cmd = f'{sys.executable} -m spiderfoot -m {target_name} -s "{target_value}"'
         
         result = subprocess.run(
             cmd,
@@ -2921,8 +2965,12 @@ def blackbird_search():
     
     print_info(f"\n  Поиск: {username}\n")
     
+    # Portable-режим
+    portable_bb = get_portable_tool("blackbird")
+    bb_cmd = portable_bb if portable_bb else None
+    
     # Проверка и установка Blackbird
-    installed = check_tool("blackbird")
+    installed = bb_cmd is not None or check_tool("blackbird")
     if not installed:
         print_info("  Устанавливаем Blackbird через git...\n")
         run_command('git clone https://github.com/projectdiscovery/blackbird.git')
@@ -2942,8 +2990,9 @@ def blackbird_search():
     
     try:
         # Запускаем Blackbird
+        cmd = [bb_cmd, username] if bb_cmd else ["blackbird", username]
         result = subprocess.run(
-            ["blackbird", username],
+            cmd,
             capture_output=True,
             text=True,
             timeout=300  # 5 минут таймаут

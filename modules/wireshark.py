@@ -63,10 +63,16 @@ def run_wireshark_module():
 
 def get_tshark():
     """Получить путь к tshark"""
+    # 1. Сначала проверяем portable
+    portable_tshark = get_portable_tool("tshark")
+    if portable_tshark:
+        return portable_tshark
+    
+    # 2. В PATH
     if check_tool("tshark"):
         return "tshark"
     
-    # Фолбэк-пути для разных ОС (если tshark не в PATH)
+    # 3. Фолбэк-пути для разных ОС (если tshark не в PATH)
     paths = []
     if sys.platform == "win32":
         paths = [

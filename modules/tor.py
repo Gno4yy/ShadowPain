@@ -28,13 +28,17 @@ def launch_tor():
     """Запуск Tor-демона"""
     print_info("Запуск Tor-демона...")
     
+    # Portable-режим: ищем tor в portable/
+    portable_tor = get_portable_tool("tor")
+    tor_exe = portable_tor if portable_tor else "tor.exe"
+    
     system = platform.system()
     
     if system == "Windows":
         # Пробуем запустить tor.exe
         try:
             result = subprocess.run(
-                "tor.exe",
+                tor_exe,
                 shell=True,
                 capture_output=True,
                 text=True,

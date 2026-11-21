@@ -9,6 +9,11 @@ import os
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Portable-режим: если есть portable/lib — добавляем в путь
+_portable_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "portable", "lib")
+if os.path.isdir(_portable_lib) and _portable_lib not in sys.path:
+    sys.path.insert(0, _portable_lib)
+
 from utils.logger import setup_logger
 from utils.helpers import clear_screen, print_banner, print_error, print_success, print_info
 from config.settings import PROJECT_NAME, VERSION

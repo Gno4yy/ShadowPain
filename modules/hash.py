@@ -55,11 +55,18 @@ def hash_attack_dict():
     print_info("Straight Attack (словарь)")
     print()
     
-    if not check_tool("hashcat"):
-        print_error("Hashcat не найден! Скачайте с https://hashcat.net/hashcat/")
-        if safe_input("  [Enter для продолжения...]") is None:
-            sys.exit(0)
-        return
+    # Portable-режим: ищем hashcat в portable/
+    portable_hashcat = get_portable_tool("hashcat")
+    hashcat_cmd = portable_hashcat if portable_hashcat else "hashcat"
+    
+    if hashcat_cmd == "hashcat" and not os.path.isfile(hashcat_cmd):
+        # Проверяем через shutil.which
+        import shutil
+        if shutil.which("hashcat") is None:
+            print_error("Hashcat не найден! Скачайте с https://hashcat.net/hashcat/")
+            if safe_input("  [Enter для продолжения...]") is None:
+                sys.exit(0)
+            return
     
     hash_input = input("  Введите хеш: ").strip()
     dict_path = input("  Путь к словарю (wordlist.txt): ").strip() or "wordlist.txt"
@@ -74,7 +81,7 @@ def hash_attack_dict():
     # Определяем режим хеша автоматически
     hash_mode = auto_detect_hash(hash_input)
     
-    cmd = f'hashcat -m {hash_mode} -a 0 {hash_input} "{dict_path}"'
+    cmd = f'{hashcat_cmd} -m {hash_mode} -a 0 {hash_input} "{dict_path}"'
     
     print_info(f"Режим хеша: {hash_mode}")
     print_info(f"Команда: {cmd}")
@@ -89,7 +96,8 @@ def hash_attack_dict():
         try:
             with open(hash_file, "w") as hf:
                 hf.write(hash_input)
-            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            show_cmd = f'{hashcat_cmd} --show -m {hash_mode} "{hash_file}"'
+            subprocess.run(show_cmd, shell=True, check=False)
             try:
                 os.remove(hash_file)
             except OSError:
@@ -104,7 +112,8 @@ def hash_attack_dict():
         try:
             with open(hash_file, "w") as hf:
                 hf.write(hash_input)
-            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            show_cmd = f'{hashcat_cmd} --show -m {hash_mode} "{hash_file}"'
+            subprocess.run(show_cmd, shell=True, check=False)
             try:
                 os.remove(hash_file)
             except OSError:
@@ -124,18 +133,24 @@ def hash_attack_brute():
     print_info("Brute-Force Attack (маска)")
     print()
     
-    if not check_tool("hashcat"):
-        print_error("Hashcat не найден!")
-        if safe_input("  [Enter для продолжения...]") is None:
-            sys.exit(0)
-        return
+    # Portable-режим: ищем hashcat в portable/
+    portable_hashcat = get_portable_tool("hashcat")
+    hashcat_cmd = portable_hashcat if portable_hashcat else "hashcat"
+    
+    if hashcat_cmd == "hashcat" and not os.path.isfile(hashcat_cmd):
+        import shutil
+        if shutil.which("hashcat") is None:
+            print_error("Hashcat не найден!")
+            if safe_input("  [Enter для продолжения...]") is None:
+                sys.exit(0)
+            return
     
     hash_input = input("  Введите хеш: ").strip()
     mask = input("  Маска (?d=цифры, ?l=буквы, ?a=все): ").strip() or "?d?d?d?d"
     
     hash_mode = auto_detect_hash(hash_input)
     
-    cmd = f'hashcat -m {hash_mode} -a 3 {hash_input} "{mask}"'
+    cmd = f'{hashcat_cmd} -m {hash_mode} -a 3 {hash_input} "{mask}"'
     
     print_info(f"Режим хеша: {hash_mode}")
     print_info(f"Маска: {mask}")
@@ -150,7 +165,8 @@ def hash_attack_brute():
         try:
             with open(hash_file, "w") as hf:
                 hf.write(hash_input)
-            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            show_cmd = f'{hashcat_cmd} --show -m {hash_mode} "{hash_file}"'
+            subprocess.run(show_cmd, shell=True, check=False)
             try:
                 os.remove(hash_file)
             except OSError:
@@ -165,7 +181,8 @@ def hash_attack_brute():
         try:
             with open(hash_file, "w") as hf:
                 hf.write(hash_input)
-            subprocess.run(f'hashcat --show -m {hash_mode} "{hash_file}"', shell=True, check=False)
+            show_cmd = f'{hashcat_cmd} --show -m {hash_mode} "{hash_file}"'
+            subprocess.run(show_cmd, shell=True, check=False)
             try:
                 os.remove(hash_file)
             except OSError:
