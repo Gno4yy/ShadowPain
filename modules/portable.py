@@ -39,11 +39,13 @@ def run_portable_module():
         print("  [1]  Скачать Hashcat")
         print("  [2]  Скачать Tor Browser")
         print("  [3]  Скачать Wireshark Portable")
-        print("  [4]  Установить Sherlock (pip portable)")
+        print("  [4]  Установить Sherlock (OSINT)")
         print("  [5]  Установить Spiderfoot (OSINT)")
         print("  [6]  Установить Blackbird (OSINT)")
-        print("  [7]  Показать статус всех инструментов")
-        print("  [8]  Инструкция по WiFi-флешке")
+        print("  [7]  Установить Holehe (OSINT)")
+        print("  [8]  Установить GHunt (OSINT)")
+        print("  [9]  Показать статус всех инструментов")
+        print("  [10] Инструкция по WiFi-флешке")
         print("  [0]  Назад\n")
         
         choice = input("  >>> Ваш выбор: ").strip()
@@ -61,8 +63,12 @@ def run_portable_module():
         elif choice == "6":
             install_blackbird()
         elif choice == "7":
-            show_portable_status()
+            install_holehe()
         elif choice == "8":
+            install_ghunt()
+        elif choice == "9":
+            show_portable_status()
+        elif choice == "10":
             show_linux_usb_guide()
         elif choice == "0":
             break
@@ -217,26 +223,24 @@ pause
 
 def install_spiderfoot():
     """Установка Spiderfoot — OSINT-сканер"""
-    print_info("Установка Spiderfoot через git...\n")
+    print_info("Установка Spiderfoot...\n")
     print_info("Spiderfoot — 200+ модулей OSINT (email, IP, домен, никнейм)\n")
+    print_info("Spiderfoot требует систему сборки (gcc, libxml2-dev). Устанавливаем через pip...\n")
     
-    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    # Сначала системные зависимости
+    print_info("Шаг 1: Системные зависимости (если Linux)...\n")
+    run_command('sudo apt install -y libxml2-dev libxslt1-dev python3-dev')
     
-    print_info("Клонирую репозиторий...\n")
-    stdout, stderr, rc = run_command(f'git clone https://github.com/smicallef/spiderfoot.git {DOWNLOADS_DIR}/spiderfoot')
+    print_info("Шаг 2: Установка через pip...\n")
+    stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages spiderfoot')
     
     if rc == 0:
-        print_success("  Репозиторий клонирован!")
-        print_info(f"\n  Установка зависимостей...\n")
-        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages -r {DOWNLOADS_DIR}/spiderfoot/requirements.txt')
-        
-        if rc == 0:
-            print_success("  Spiderfoot установлен!")
-            print_info(f"  Запуск: python {DOWNLOADS_DIR}/spiderfoot/sf.py -l 127.0.0.1:5001\n")
-        else:
-            print_error(f"  Зависимости: {stderr[:200]}")
+        print_success("  Spiderfoot установлен!")
+        print_info(f"  Запуск: spiderfoot -l 127.0.0.1:5001\n")
     else:
-        print_error(f"  Ошибка клонирования: {stderr[:200]}")
+        print_error(f"  Ошибка: {stderr[:300]}")
+        print_info("  Альтернатива: git clone https://github.com/smicallef/spiderfoot.git")
+        print_info("  cd spiderfoot && pip install -r requirements.txt\n")
     
     if safe_input("  [Enter для продолжения...]") is None:
         sys.exit(0)
@@ -245,30 +249,82 @@ def install_spiderfoot():
 
 def install_blackbird():
     """Установка Blackbird — быстрый поиск по никнейму"""
-    print_info("Установка Blackbird через git...\n")
+    print_info("Установка Blackbird...\n")
     print_info("Blackbird — быстрый поиск никнейма через 150+ платформ с Tor\n")
     
-    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
-    
     print_info("Клонирую репозиторий...\n")
-    stdout, stderr, rc = run_command(f'git clone https://github.com/projectdiscovery/blackbird.git {DOWNLOADS_DIR}/blackbird')
+    stdout, stderr, rc = run_command('git clone https://github.com/antoniaci/blackbird.git')
     
     if rc == 0:
         print_success("  Репозиторий клонирован!")
         print_info(f"\n  Установка зависимостей...\n")
-        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages -r {DOWNLOADS_DIR}/blackbird/requirements.txt')
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./blackbird')
         
         if rc == 0:
             print_success("  Blackbird установлен!")
             print_info(f"  Запуск: blackbird <username>\n")
         else:
-            print_error(f"  Зависимости: {stderr[:200]}")
+            print_error(f"  Зависимости: {stderr[:300]}")
     else:
-        print_error(f"  Ошибка клонирования: {stderr[:200]}")
+        print_error(f"  Ошибка клонирования: {stderr[:300]}")
     
     if safe_input("  [Enter для продолжения...]") is None:
         sys.exit(0)
     logger.info("Installed Blackbird")
+
+
+def install_holehe():
+    """Установка Holehe — проверка email на регистрацию в 120+ сервисах"""
+    print_info("Установка Holehe...\n")
+    print_info("Holehe — проверка email на регистрацию в сервисах (Facebook, Instagram, Twitter...)\n")
+    
+    print_info("Клонирую репозиторий...\n")
+    stdout, stderr, rc = run_command('git clone https://github.com/megadose/holehe.git')
+    
+    if rc == 0:
+        print_success("  Репозиторий клонирован!")
+        print_info(f"\n  Установка зависимостей...\n")
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./holehe')
+        
+        if rc == 0:
+            print_success("  Holehe установлен!")
+            print_info(f"  Запуск: holehe <email>\n")
+        else:
+            print_error(f"  Зависимости: {stderr[:300]}")
+    else:
+        print_error(f"  Ошибка клонирования: {stderr[:300]}")
+    
+    if safe_input("  [Enter для продолжения...]") is None:
+        sys.exit(0)
+    logger.info("Installed Holehe")
+
+
+def install_ghunt():
+    """Установка GHunt — сбор информации из Google"""
+    print_info("Установка GHunt...\n")
+    print_info("GHunt — сбор информации из Google (аккаунт, Maps, Photos)\n")
+    print_warning("  ⚠  Требуется авторизация Google (OAuth2)!\n")
+    
+    print_info("Клонирую репозиторий...\n")
+    stdout, stderr, rc = run_command('git clone https://github.com/mxrch/GHunt.git')
+    
+    if rc == 0:
+        print_success("  Репозиторий клонирован!")
+        print_info(f"\n  Установка зависимостей...\n")
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./GHunt')
+        
+        if rc == 0:
+            print_success("  GHunt установлен!")
+            print_info(f"  Запуск: ghunt email <email>\n")
+            print_info("  Первичная настройка: python GHunt/ghunt.py --init\n")
+        else:
+            print_error(f"  Зависимости: {stderr[:300]}")
+    else:
+        print_error(f"  Ошибка клонирования: {stderr[:300]}")
+    
+    if safe_input("  [Enter для продолжения...]") is None:
+        sys.exit(0)
+    logger.info("Installed GHunt")
 
 
 def show_portable_status():
@@ -278,9 +334,11 @@ def show_portable_status():
     print("\n  === Статус Portable-инструментов ===\n")
     
     status = {
-        "Sherlock": ("git clone + pip install", True),
-        "Spiderfoot": ("git clone + pip install", False),
+        "Sherlock": ("pip install sherlock-project", True),
+        "Spiderfoot": ("pip install spiderfoot", False),
         "Blackbird": ("git clone + pip install", False),
+        "Holehe": ("git clone + pip install", False),
+        "GHunt": ("git clone + pip install (OAuth2)", False),
         "Анонимная почта": ("Встроено (Mail.tm API)", True),
         "Hashcat": ("Скачать portable: hashcat.net", False),
         "Wireshark": ("Скачать: wireshark.org", False),

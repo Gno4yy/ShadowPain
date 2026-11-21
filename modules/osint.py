@@ -20,7 +20,7 @@ if _project_root not in sys.path:
 from utils.helpers import (
     clear_screen, print_banner, print_success, print_error,
     print_info, print_warning, run_command, check_tool, save_output,
-    safe_input
+    safe_input, get_portable_tool
 )
 from utils.logger import setup_logger
 from modules.search_name import search_by_name as _search_by_name
@@ -2973,13 +2973,13 @@ def blackbird_search():
     installed = bb_cmd is not None or check_tool("blackbird")
     if not installed:
         print_info("  Устанавливаем Blackbird через git...\n")
-        run_command('git clone https://github.com/projectdiscovery/blackbird.git')
+        run_command('git clone https://github.com/antoniaci/blackbird.git')
         stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./blackbird')
         installed = check_tool("blackbird")
     
     if not installed:
         print_error("  Blackbird не установлен. Установите вручную:")
-        print_info("  git clone https://github.com/projectdiscovery/blackbird.git")
+        print_info("  git clone https://github.com/antoniaci/blackbird.git")
         print_info("  pip install ./blackbird")
         safe_input("  [Enter для продолжения...]")
         return

@@ -117,7 +117,7 @@ def _install_python_packages_auto():
         "sherlock-project": ("https://github.com/sherlock-project/sherlock.git", "sherlock"),
         "wifite2": ("https://github.com/derv82/wifite2.git", "wifite2"),
         "spiderfoot": ("https://github.com/smicallef/spiderfoot.git", "spiderfoot"),
-        "blackbird": ("https://github.com/projectdiscovery/blackbird.git", "blackbird"),
+        "blackbird": ("https://github.com/antoniaci/blackbird.git", "blackbird"),
     }
     
     installed = 0
@@ -307,7 +307,7 @@ def install_python_packages():
         "sherlock-project": ("https://github.com/sherlock-project/sherlock.git", "sherlock"),
         "wifite2": ("https://github.com/derv82/wifite2.git", "wifite2"),
         "spiderfoot": ("https://github.com/smicallef/spiderfoot.git", "spiderfoot"),
-        "blackbird": ("https://github.com/projectdiscovery/blackbird.git", "blackbird"),
+        "blackbird": ("https://github.com/antoniaci/blackbird.git", "blackbird"),
     }
     
     for pkg, (url, dirname) in repos.items():

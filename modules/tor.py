@@ -16,7 +16,8 @@ if _project_root not in sys.path:
 
 from utils.helpers import (
     clear_screen, print_banner, print_success, print_error,
-    print_info, print_warning, run_command, check_tool, safe_input
+    print_info, print_warning, run_command, check_tool, safe_input,
+    get_portable_tool
 )
 from utils.logger import setup_logger
 
