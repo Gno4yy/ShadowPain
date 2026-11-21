@@ -96,11 +96,9 @@ def get_sqlmap():
 
 def check_sqlmap():
     """Проверка наличия sqlmap"""
-    # Сначала ищем как утилиту
     if check_tool("sqlmap"):
         return True
     
-    # Пробуем через python -m
     try:
         import importlib.util
         spec = importlib.util.find_spec("sqlmap")
@@ -109,26 +107,15 @@ def check_sqlmap():
     except (ImportError, ModuleNotFoundError):
         pass
     
-    # Пробуем через pip show
     stdout, _, rc = run_command(f'{sys.executable} -m pip show sqlmap')
     if rc == 0 and stdout.strip():
         print_success(" sqlmap установлен через pip!")
         return True
     
     print_error("sqlmap не найден!\n")
-    print_info("Установка sqlmap:\n")
-    print("  Вариант 1: pip install sqlmap")
-    print("  Вариант 2: git clone https://github.com/sqlmapproject/sqlmap.git")
-    print("  Вариант 3: https://sqlmap.org/\n")
-    
-    confirm = input("  Установить через git? (y/n): ").strip().lower()
-    if confirm == "y":
-        stdout, stderr, rc = run_command('git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev')
-        if rc == 0:
-            print_success(" sqlmap установлен!")
-            return True
-        else:
-            print_error(f" Ошибка: {stderr}")
+    print_info("Установка:\n")
+    print("  pip install sqlmap")
+    print("  или git clone https://github.com/sqlmapproject/sqlmap.git\n")
     return False
 
 

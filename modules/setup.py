@@ -36,6 +36,7 @@ def run_setup_module():
         print("  [5]  Настроить portable-режим")
         print("  [6]  Сгенерировать скрипт запуска")
         print("  [7]  Изменить баннер")
+        print("  [8]  Показать инструкцию по WiFi-флешке")
         print("  [0]  Назад\n")
         
         choice = input("  >>> Ваш выбор: ").strip()
@@ -54,6 +55,8 @@ def run_setup_module():
             generate_launcher()
         elif choice == "7":
             change_banner()
+        elif choice == "8":
+            show_linux_usb_guide()
         elif choice == "0":
             break
         else:
@@ -113,6 +116,8 @@ def _install_python_packages_auto():
     repos = {
         "sherlock-project": ("https://github.com/sherlock-project/sherlock.git", "sherlock"),
         "wifite2": ("https://github.com/derv82/wifite2.git", "wifite2"),
+        "spiderfoot": ("https://github.com/smicallef/spiderfoot.git", "spiderfoot"),
+        "blackbird": ("https://github.com/projectdiscovery/blackbird.git", "blackbird"),
     }
     
     installed = 0
@@ -301,6 +306,8 @@ def install_python_packages():
     repos = {
         "sherlock-project": ("https://github.com/sherlock-project/sherlock.git", "sherlock"),
         "wifite2": ("https://github.com/derv82/wifite2.git", "wifite2"),
+        "spiderfoot": ("https://github.com/smicallef/spiderfoot.git", "spiderfoot"),
+        "blackbird": ("https://github.com/projectdiscovery/blackbird.git", "blackbird"),
     }
     
     for pkg, (url, dirname) in repos.items():
@@ -456,19 +463,29 @@ def show_portable_instructions():
   ║      → https://www.torproject.org/download/              ║
   ║      → Скачать Tor Browser Bundle                        ║
   ║      → Распаковать в portable/                           ║
-  ║                                                          ║
-  ║  4.  WiFi-инструменты (Wifite, Aircrack-ng):             ║
-  ║      → НЕ работают на Windows!                           ║
-  ║      → Вариант A: WSL (см. пункт [3] выше)               ║
-  ║      → Вариант B: Linux-флешка (см. ниже)                ║
-  ║                                                          ║
-  ║  5.  Sherlock (OSINT):                                   ║
-  ║      → pip install sherlock-project                      ║
-  ║      → Работает сразу!                                   ║
-  ║                                                          ║
-  ║  6.  Анонимная почта (Mail.tm):                          ║
-  ║      → Работает сразу!                                   ║
-  ║      → Не требует установки                              ║
+   ║                                                          ║
+   ║  4.  WiFi-инструменты (Wifite, Aircrack-ng):             ║
+   ║      → НЕ работают на Windows!                           ║
+   ║      → Вариант A: WSL (см. пункт [3] выше)               ║
+   ║      → Вариант B: Linux-флешка (см. ниже)                ║
+   ║                                                          ║
+   ║  5.  Sherlock (OSINT):                                   ║
+   ║      → pip install sherlock-project                      ║
+   ║      → Работает сразу!                                   ║
+   ║                                                          ║
+   ║  6.  Spiderfoot (OSINT):                                 ║
+   ║      → git clone https://github.com/smicallef/spiderfoot ║
+   ║      → pip install -r requirements.txt                   ║
+   ║      → python sf.py -l 127.0.0.1:5001                    ║
+   ║                                                          ║
+   ║  7.  Blackbird (OSINT):                                  ║
+   ║      → git clone https://github.com/projectdiscovery/    ║
+   ║      → pip install -r requirements.txt                   ║
+   ║      → blackbird <username>                               ║
+   ║                                                          ║
+   ║  8.  Анонимная почта (Mail.tm):                          ║
+   ║      → Работает сразу!                                   ║
+   ║      → Не требует установки                              ║
   ║                                                          ║
   ╚══════════════════════════════════════════════════════════╝
     """

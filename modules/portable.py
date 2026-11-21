@@ -39,9 +39,11 @@ def run_portable_module():
         print("  [1]  Скачать Hashcat")
         print("  [2]  Скачать Tor Browser")
         print("  [3]  Скачать Wireshark Portable")
-        print("  [4]  Скачать Sherlock (pip portable)")
-        print("  [5]  Показать статус всех инструментов")
-        print("  [6]  Инструкция по WiFi-флешке")
+        print("  [4]  Установить Sherlock (pip portable)")
+        print("  [5]  Установить Spiderfoot (OSINT)")
+        print("  [6]  Установить Blackbird (OSINT)")
+        print("  [7]  Показать статус всех инструментов")
+        print("  [8]  Инструкция по WiFi-флешке")
         print("  [0]  Назад\n")
         
         choice = input("  >>> Ваш выбор: ").strip()
@@ -55,8 +57,12 @@ def run_portable_module():
         elif choice == "4":
             pip_portable()
         elif choice == "5":
-            show_portable_status()
+            install_spiderfoot()
         elif choice == "6":
+            install_blackbird()
+        elif choice == "7":
+            show_portable_status()
+        elif choice == "8":
             show_linux_usb_guide()
         elif choice == "0":
             break
@@ -97,16 +103,11 @@ def download_hashcat():
     
     os.makedirs(DOWNLOADS_DIR, exist_ok=True)
     
-    # Определяем архитектуру
     system = platform.system()
-    arch = "64bit" if platform.machine().endswith('64') else "32bit"
     
     if system == "Windows":
         # Hashcat для Windows
         print_info("Скачиваем Hashcat для Windows...\n")
-        
-        url = "https://github.com/hashcat/hashcat/releases/latest/download/hashcat-6.6.4.7z"
-        dest = os.path.join(DOWNLOADS_DIR, "hashcat.7z")
         
         print_warning("Hashcat для Windows скачивается вручную:")
         print_info("  https://hashcat.net/hashcat/\n")
@@ -123,12 +124,14 @@ def download_hashcat():
     
     # Linux
     print_info("Скачиваем Hashcat для Linux...\n")
-    url = "https://github.com/hashcat/hashcat/releases/latest/download/hashcat-6.6.4.7z"
-    dest = os.path.join(DOWNLOADS_DIR, "hashcat.7z")
+    print_warning("Hashcat для Linux скачивается вручную:")
+    print_info("  https://hashcat.net/hashcat/\n")
     
-    if download_file(url, dest, "Hashcat"):
-        print_success(" Hashcat скачан!")
-        print_info(" Распакуйте: 7z x portable/hashcat.7z -pportable/hashcat/")
+    choice = input("  Открыть страницу скачивания? (y/n): ").strip().lower()
+    if choice == "y":
+        subprocess.run("start https://hashcat.net/hashcat/", shell=True)
+        print_info("\n 1. Распакуйте в portable/hashcat/")
+        print_info(" 2. Hashcat — portable, не требует установки!")
     
     if safe_input("  [Enter для продолжения...]") is None:
         sys.exit(0)
@@ -141,21 +144,12 @@ def download_tor():
     
     os.makedirs(DOWNLOADS_DIR, exist_ok=True)
     
-    system = platform.system()
-    
-    if system == "Windows":
-        url = "https://www.torproject.org/dist/torbrowser/13.0.7/tor-browser-win64-13.0.7.exe"
-        print_info("Скачиваем Tor Browser для Windows...\n")
-    else:
-        url = "https://www.torproject.org/dist/torbrowser/13.0.7/tor-browser-linux-x86_64-13.0.7.tar.xz"
-        print_info("Скачиваем Tor Browser для Linux...\n")
-    
     print_warning("Tor Browser весит ~80MB. Скачиваем через браузер:")
-    print_info(f"  https://www.torproject.org/download/\n")
+    print_info("  https://www.torproject.org/download/\n")
     
     choice = input("  Открыть страницу скачивания? (y/n): ").strip().lower()
     if choice == "y":
-        subprocess.run(f"start {url}", shell=True)
+        subprocess.run("start https://www.torproject.org/download/", shell=True)
         print_info("\n  Распакуйте в portable/tor/")
     
     if safe_input("  [Enter для продолжения...]") is None:
@@ -221,6 +215,62 @@ pause
     logger.info("Installed pip packages in portable mode")
 
 
+def install_spiderfoot():
+    """Установка Spiderfoot — OSINT-сканер"""
+    print_info("Установка Spiderfoot через git...\n")
+    print_info("Spiderfoot — 200+ модулей OSINT (email, IP, домен, никнейм)\n")
+    
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    
+    print_info("Клонирую репозиторий...\n")
+    stdout, stderr, rc = run_command(f'git clone https://github.com/smicallef/spiderfoot.git {DOWNLOADS_DIR}/spiderfoot')
+    
+    if rc == 0:
+        print_success("  Репозиторий клонирован!")
+        print_info(f"\n  Установка зависимостей...\n")
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages -r {DOWNLOADS_DIR}/spiderfoot/requirements.txt')
+        
+        if rc == 0:
+            print_success("  Spiderfoot установлен!")
+            print_info(f"  Запуск: python {DOWNLOADS_DIR}/spiderfoot/sf.py -l 127.0.0.1:5001\n")
+        else:
+            print_error(f"  Зависимости: {stderr[:200]}")
+    else:
+        print_error(f"  Ошибка клонирования: {stderr[:200]}")
+    
+    if safe_input("  [Enter для продолжения...]") is None:
+        sys.exit(0)
+    logger.info("Installed Spiderfoot")
+
+
+def install_blackbird():
+    """Установка Blackbird — быстрый поиск по никнейму"""
+    print_info("Установка Blackbird через git...\n")
+    print_info("Blackbird — быстрый поиск никнейма через 150+ платформ с Tor\n")
+    
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    
+    print_info("Клонирую репозиторий...\n")
+    stdout, stderr, rc = run_command(f'git clone https://github.com/projectdiscovery/blackbird.git {DOWNLOADS_DIR}/blackbird')
+    
+    if rc == 0:
+        print_success("  Репозиторий клонирован!")
+        print_info(f"\n  Установка зависимостей...\n")
+        stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages -r {DOWNLOADS_DIR}/blackbird/requirements.txt')
+        
+        if rc == 0:
+            print_success("  Blackbird установлен!")
+            print_info(f"  Запуск: blackbird <username>\n")
+        else:
+            print_error(f"  Зависимости: {stderr[:200]}")
+    else:
+        print_error(f"  Ошибка клонирования: {stderr[:200]}")
+    
+    if safe_input("  [Enter для продолжения...]") is None:
+        sys.exit(0)
+    logger.info("Installed Blackbird")
+
+
 def show_portable_status():
     """Показывает статус всех portable-инструментов"""
     clear_screen()
@@ -228,7 +278,9 @@ def show_portable_status():
     print("\n  === Статус Portable-инструментов ===\n")
     
     status = {
-        "Sherlock": ("pip install sherlock-project", True),
+        "Sherlock": ("git clone + pip install", True),
+        "Spiderfoot": ("git clone + pip install", False),
+        "Blackbird": ("git clone + pip install", False),
         "Анонимная почта": ("Встроено (Mail.tm API)", True),
         "Hashcat": ("Скачать portable: hashcat.net", False),
         "Wireshark": ("Скачать: wireshark.org", False),

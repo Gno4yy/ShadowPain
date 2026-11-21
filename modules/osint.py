@@ -2844,13 +2844,13 @@ def spiderfoot_search():
     installed = check_tool("sf")
     if not installed:
         print_info("  Устанавливаем Spiderfoot через git...\n")
-        run_command('git clone https://github.com/spiderfoot/spiderfoot.git')
+        run_command('git clone https://github.com/smicallef/spiderfoot.git')
         stdout, stderr, rc = run_command(f'{sys.executable} -m pip install --break-system-packages ./spiderfoot')
         installed = check_tool("sf")
     
     if not installed:
         print_error("  Spiderfoot не установлен. Установите вручную:")
-        print_info("  git clone https://github.com/spiderfoot/spiderfoot.git")
+        print_info("  git clone https://github.com/smicallef/spiderfoot.git")
         print_info("  pip install ./spiderfoot")
         safe_input("  [Enter для продолжения...]")
         return

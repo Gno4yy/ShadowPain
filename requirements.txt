@@ -11,6 +11,15 @@ leaklook>=1.0.0
 # OSINT — Async HTTP для быстрого поиска по никнеймам
 aiohttp>=3.9.0
 
+# Colorama для кроссплатформенных цветов в терминале
+colorama>=0.4.6
+
+# PrettyTable для красивых таблиц
+prettytable>=3.0.0
+
+# TLDExtract для работы с доменами
+tldextract>=3.4.0
+
 # WiFi — netsh (встроен в Windows)
 # aircrack-ng / wifite — устанавливаются отдельно: sudo apt install -y aircrack-ng wifite
 
