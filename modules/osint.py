@@ -2746,8 +2746,8 @@ def search_email_holehe(email):
     print_warning("  ⚠  Это может занять несколько минут.\n")
     
     try:
-        # Запускаем Holehe
-        cmd = [sys.executable, "-m", "holehe", email] if not holehe_cmd else [holehe_cmd, email]
+        # Запускаем Holehe (через entrypoint, не -m)
+        cmd = ["holehe", email] if not holehe_cmd else [holehe_cmd, email]
         result = subprocess.run(
             cmd,
             capture_output=True,
