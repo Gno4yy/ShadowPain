@@ -2883,7 +2883,7 @@ def spiderfoot_search():
     sf_cmd = portable_sf if portable_sf else None
     
     # Проверка и установка Spiderfoot
-    installed = sf_cmd is not None or check_tool("sf")
+    installed = sf_cmd is not None or check_tool("sf") or check_tool("spiderfoot")
     if not installed:
         print_info("  Устанавливаем Spiderfoot через git...\n")
         run_command('git clone https://github.com/smicallef/spiderfoot.git')
@@ -2902,11 +2902,13 @@ def spiderfoot_search():
     print_warning("  ⚠  Это может занять 10-30 минут.\n")
     
     try:
-        # Запускаем Spiderfoot в headless режиме
+        # Запускаем Spiderfoot headless через CLI
         if sf_cmd:
-            cmd = f'"{sf_cmd}" -m {target_name} -s "{target_value}"'
+            cmd = f'"{sf_cmd}" -m {target_name} -s "{target_value}" -n "ShadowPain scan"'
         else:
-            cmd = f'{sys.executable} -m spiderfoot -m {target_name} -s "{target_value}"'
+            cmd = f'{sys.executable} -m spiderfoot -m {target_name} -s "{target_value}" -n "ShadowPain scan"'
+        
+        print_info(f"  Команда: {cmd}\n")
         
         result = subprocess.run(
             cmd,
